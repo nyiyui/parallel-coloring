@@ -3,6 +3,71 @@
 
 ## Due: EOD, 30 April
 
+## Introduction
+
+This program attempts to do a k-coloring of an arbitrary graph.
+
+### Motivation
+
+Parallel (scientific) computing programs and compilers both have a dependency on job dependency, often modeled using a graph structure.
+
+**Example application for register allocation.**
+First proposed by [Chaitin et al.](https://doi.org/10.1016%2F0096-0551%2881%2990048-5), vertices represent the live ranges of variables to be allocated.
+Live ranges that are live at the same time are connected by an edge.
+By a k-coloring, we can effectively assign a register to each variable, such that no two variables that are live at the same time are assigned the same register.
+
+In a "real world" example, a compiler would do this as part or a larger algorithm:
+1. Find live ranges of variables by static analysis.
+2. Build the graph representing the live ranges and their overlaps.
+3. Find a k-coloring of the graph (k is the number of registers). Note that k is usually very small compared to the number of variables (e.g. k=16 for x86-64, k=31 for ARM64).
+4. Most likely, not all variables can be mapped to registers, so the compiler will have to put some variables in memory ("spill").
+
+**Example application for job scheduling.**
+Each task is represented by a vertex. Each dependency is represented by an edge.
+A k-coloring of this graph represents a scheduling of the tasks, such that no two tasks that are dependent on each other are scheduled at the same time.
+
+[Leighton 1979](https://nvlpubs.nist.gov/nistpubs/jres/84/jresv84n6p489_a1b.pdf) has a few other applications:
+- exam scheduling in the minimum number of time slots
+- storing chemicals in a minimum number of containers (where two chemicals cannot be stored in the same container if they react with each other)
+
+### Algorithms
+
+TODO: serial algorithm, general consturction
+
+TODO: Luby
+
+## Methods
+
+> Sufficient info to plausibly replicate
+> project with little further info needed.
+> Discussion of what exactly was done
+> is clear. Discussion of all parameters
+> varied clear, and their meaning given.
+> Methods clearly appropriate to
+> address project goals. [4 pts]
+
+## Results
+
+> Results clearly stated. Reference back
+> to project goals given in the
+> introduction. Results presented within
+> that context. Implications of results
+> discussed and explained. [4 pts]
+
+## Conclusion
+
+> Project goals, methods, and results
+> restated. Results put into a broader
+> context. Implications of work given,
+> and future directions suggested.
+> [4 pts]
+
+## Other References
+
+Other references that are not mentioned above are stored here:
+- [Luby's Algorithm for Maximal Independent Set](https://www.cs.cmu.edu/afs/cs/academic/class/15750-s17/ScribeNotes/lecture32.pdf)
+  - MIS algorithm can be used for finding the maximal coloring of a single color.
+
 ## Project topics
 
 You will complete one of the parallel programming and analysis projects below. For _all_ project topics, you must address or satisfy all of the following.
@@ -15,46 +80,6 @@ You will complete one of the parallel programming and analysis projects below. F
 - Perform extensive scaling studies (i.e., weak, strong, thread-to-thread speedup) on PACE. Your scaling studies should extend to as large a number of tasks as you are able to with your problem.
 
 Note that for many of these project topics, parallel code can easily be obtained online. _You must develop your own original code to address your problem_. Researching your problem on the web is expected and encouraged, but I recommend you avoid looking directly at someone's code for inspiration.
-
-### 1. Heat Equation
-
-See Section 31.3 of [HPSC2020](../refs/EijkhoutIntroToHPC2020.pdf).
-
-### 2. Poisson Equation
-
-See Section 4.2.2 of [HPSC2020](../refs/EijkhoutIntroToHPC2020.pdf).
-
-### 3. Conjugate Gradient
-
-See Section 5.5.11 of [HPSC2020](../refs/EijkhoutIntroToHPC2020.pdf).
-
-### 4. Gaussian Elimination
-
-See Section 5.1 of [HPSC2020](../refs/EijkhoutIntroToHPC2020.pdf).
-
-### 5. Molecular Dynamics
-
-See Chapter 7 of [HPSC2020](../refs/EijkhoutIntroToHPC2020.pdf).
-
-### 6. Sorting and Combinatorics
-
-See Chapter 8 of [HPSC2020](../refs/EijkhoutIntroToHPC2020.pdf).
-
-### 7. Graph analytics
-
-See Chapter 9 of [HPSC2020](../refs/EijkhoutIntroToHPC2020.pdf).
-
-### 8. N-body Simulation
-
-See Chapter 10 of [HPSC2020](../refs/EijkhoutIntroToHPC2020.pdf).
-
-### 9. Monte Carlo Methods
-
-See Chapter 11 of [HPSC2020](../refs/EijkhoutIntroToHPC2020.pdf).
-
-### 10. Machine Learning
-
-Open topic and I am happy to discuss if you have ideas! Any reasonable approach to implementing a ML algorithm in parallel, satisfying the criteria laid out above, is good. Some type of model parallelism must be included. Note that ML is broader than neural networks. 
 
 ## Project Reports
 
