@@ -30,13 +30,34 @@ A k-coloring of this graph represents a scheduling of the tasks, such that no tw
 - exam scheduling in the minimum number of time slots
 - storing chemicals in a minimum number of containers (where two chemicals cannot be stored in the same container if they react with each other)
 
+### The Nature of the Graph
+
+The graph is assumed to be sparse, i.e. the number of edges is much smaller than the number of vertices squared.
+
+We assume to take a register allocation graph, and make a few assumptions about the graph:
+- THe graph is simple.
+- The graph is connected.
+- The graph is undirected.
+
 ### Algorithms
+
+- Graph is immutable, so sharing is "easy"
+
+#### Independent Set
+
+The independent set of a graph is a set of vertices such that no two vertices in the set are adjacent.
+A maximal independent set (MIS) is an independent set that cannot be extended by adding an adjacent vertex.
+
+A MIS of a graph corresponds to a single color in a k-coloring of the graph.
 
 TODO: serial algorithm, general consturction
 
 TODO: Luby
 
 ## Methods
+
+The graph will be given in adjacency matrix format, where the matrix itself is represented in compressed sparse row storage (CSR) format.
+Since we assume the graph is not mutated in any step of any algorithm, there is no concern of mutations "locking up" the graph in a parallel algorithm.
 
 > Sufficient info to plausibly replicate
 > project with little further info needed.
@@ -67,6 +88,8 @@ TODO: Luby
 Other references that are not mentioned above are stored here:
 - [Luby's Algorithm for Maximal Independent Set](https://www.cs.cmu.edu/afs/cs/academic/class/15750-s17/ScribeNotes/lecture32.pdf)
   - MIS algorithm can be used for finding the maximal coloring of a single color.
+- [Luby 1986](https://courses.csail.mit.edu/6.852/08/papers/Luby.pdf)
+  - Paper describing Luby's Monte Carlo algorithm for graph coloring.
 
 ## Project topics
 
