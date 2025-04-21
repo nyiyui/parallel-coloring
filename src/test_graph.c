@@ -3,26 +3,26 @@
 #include "graph.h"
 
 int main(void) {
-  struct matrix_csr *m = matrix_csr_create(10, 10, malloc);
+  struct matrix_al *m = matrix_al_create(10, malloc);
   if (m == NULL) {
     return 1;
   }
 
-  matrix_csr_fill_random(m);
+  matrix_al_fill_random(m, 20);
 
-  matrix_csr_print(m);
+  matrix_al_print(m);
   
   FILE *f = fopen("graph.dot", "w");
   if (f == NULL) {
-    matrix_csr_destroy(m, free);
+    matrix_al_destroy(m, free);
     return 1;
   }
   
-  matrix_csr_as_dot(m, f);
+  matrix_al_as_dot(m, f);
   
   fclose(f);
   
-  matrix_csr_destroy(m, free);
+  matrix_al_destroy(m, free);
   
   return 0;
 }
