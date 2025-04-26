@@ -58,6 +58,8 @@ void matrix_print(struct matrix *m);
 
 void matrix_as_dot(struct matrix *m, FILE *f);
 
+void matrix_as_dot_color(struct matrix *m, FILE *f, struct coloring *c);
+
 bool matrix_query(struct matrix *m, number_t i, number_t j);
 
 bool matrix_verify_coloring(struct matrix *m, struct coloring *c);

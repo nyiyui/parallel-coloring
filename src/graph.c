@@ -5,6 +5,21 @@
 
 #include "graph.h"
 
+char *color_names[] = {
+  "red",
+  "green",
+  "blue",
+  "yellow",
+  "purple",
+  "orange",
+  "pink",
+  "brown",
+  "gray",
+  "black"
+};
+
+const size_t color_names_length = sizeof(color_names) / sizeof(char *);
+
 struct matrix_al *matrix_al_create(size_t pairs_size, number_t n_vertices, void *malloc(size_t)) {
   struct matrix_al *m = malloc(sizeof(struct matrix_al));
   if (m == NULL) {
@@ -46,6 +61,22 @@ void matrix_al_as_dot(struct matrix_al *m, FILE *f) {
   fprintf(f, "graph G {\n");
   for (size_t i = 0; i < m->pairs_size; i++) {
     fprintf(f, "  %u -- %u;\n", m->pairs[i].i, m->pairs[i].j);
+  }
+  fprintf(f, "}\n");
+}
+
+void matrix_as_dot_color(struct matrix *m, FILE *f, struct coloring *c) {
+  if (m == NULL || f == NULL || c == NULL) {
+    return;
+  }
+  fprintf(f, "graph G {\n");
+  for (size_t i = 0; i < m->n_vertices; i++) {
+    if (c->colors[i] < color_names_length) {
+      fprintf(f, "  %u [color=%s];\n", i, color_names[c->colors[i]]);
+    }
+    for (size_t j = m->row_index[i]; j < m->row_index[i + 1]; j++) {
+      fprintf(f, "  %u -- %u;\n", i, m->col_index[j]);
+    }
   }
   fprintf(f, "}\n");
 }
