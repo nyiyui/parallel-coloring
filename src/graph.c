@@ -72,10 +72,10 @@ void matrix_as_dot_color(struct matrix *m, FILE *f, struct coloring *c) {
   fprintf(f, "graph G {\n");
   for (size_t i = 0; i < m->n_vertices; i++) {
     if (c->colors[i] < color_names_length) {
-      fprintf(f, "  %u [color=%s];\n", i, color_names[c->colors[i]]);
+      fprintf(f, "  %lu [color=%s];\n", i, color_names[c->colors[i]]);
     }
     for (size_t j = m->row_index[i]; j < m->row_index[i + 1]; j++) {
-      fprintf(f, "  %u -- %u;\n", i, m->col_index[j]);
+      fprintf(f, "  %lu -- %u;\n", i, m->col_index[j]);
     }
   }
   fprintf(f, "}\n");
@@ -207,7 +207,7 @@ void matrix_print(struct matrix *m) {
   }
   // print like a normal matrix
   for (size_t i = 0; i < m->n_vertices; i++) {
-    printf("% 2x: ", i);
+    printf("% 2ld: ", i);
     for (size_t j = 0; j < m->n_vertices; j++) {
       bool found = false;
       for (size_t k = m->row_index[i]; k < m->row_index[i + 1]; k++) {
@@ -229,7 +229,7 @@ void matrix_as_dot(struct matrix *m, FILE *f) {
   fprintf(f, "graph G {\n");
   for (size_t i = 0; i < m->n_vertices; i++) {
     for (size_t j = m->row_index[i]; j < m->row_index[i + 1]; j++) {
-      fprintf(f, "  %u -- %u;\n", i, m->col_index[j]);
+      fprintf(f, "  %lu -- %u;\n", i, m->col_index[j]);
     }
   }
   fprintf(f, "}\n");
@@ -259,7 +259,7 @@ bool matrix_verify_coloring(struct matrix *m, struct coloring *c) {
   for (size_t i = 0; i < m->n_vertices; i++) {
     for (size_t j = m->row_index[i]; j < m->row_index[i + 1]; j++) {
       if (c->colors[i] == c->colors[m->col_index[j]]) {
-        printf("Invalid coloring at (%u, %u)\n", i, m->col_index[j]);
+        printf("Invalid coloring at (%lu, %u)\n", i, m->col_index[j]);
         return false;
       }
     }

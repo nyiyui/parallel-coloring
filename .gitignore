@@ -1,2 +1,6 @@
 *.pch
 .direnv
+graph.dot
+test_graph.dot
+test_graph.svg
+a.out

@@ -2,7 +2,11 @@
 
 #include "graph.h"
 
-int main(void) {
+int main(int argc, char *argv[]) {
+  if (argc != 1) {
+    printf("Usage: %s <dot_path>\n", argv[0]);
+    return 1;
+  }
   struct matrix *m = matrix_create_random(0x40, 0x20, malloc);
   if (m == NULL) {
     return 1;
@@ -10,7 +14,7 @@ int main(void) {
 
   matrix_print(m);
   
-  FILE *f = fopen("graph.dot", "w");
+  FILE *f = fopen(argv[1], "w");
   if (f == NULL) {
     matrix_destroy(m, free);
     return 1;
