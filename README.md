@@ -59,6 +59,13 @@ TODO: Luby
 The graph will be given in adjacency matrix format, where the matrix itself is represented in compressed sparse row storage (CSR) format.
 Since we assume the graph is not mutated in any step of any algorithm, there is no concern of mutations "locking up" the graph in a parallel algorithm.
 
+Requirements for the graph object:
+- Represent a simple graph with an ID for each vertex.
+- Create a random simple graph of n vertices.
+- Output the graph to dot format.
+- Return whether two vertices are adjacent.
+- Create a new induced subgraph with the same IDs for each vertex.
+
 > Sufficient info to plausibly replicate
 > project with little further info needed.
 > Discussion of what exactly was done
@@ -90,6 +97,10 @@ Other references that are not mentioned above are stored here:
   - MIS algorithm can be used for finding the maximal coloring of a single color.
 - [Luby 1986](https://courses.csail.mit.edu/6.852/08/papers/Luby.pdf)
   - Paper describing Luby's Monte Carlo algorithm for graph coloring.
+- https://www.osti.gov/servlets/purl/1246285
+- https://ireneli.eu/2015/10/26/parallel-graph-coloring-algorithms/
+- https://paralg.github.io/gbbs/docs/benchmarks/covering/graph_coloring/
+- https://doi.org/10.1137/0914041
 
 ## Project topics
 

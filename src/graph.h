@@ -16,6 +16,7 @@ struct matrix_al {
   // pairs are first sorted by i then j
   struct matrix_al_pair *pairs;
   size_t pairs_size;
+  bool *v; // v[i] iff i is in the graph, length of v is n_vertices
   number_t n_vertices;
 };
 
@@ -37,3 +38,28 @@ struct coloring {
 };
 
 bool matrix_al_verify_coloring(struct matrix_al *m, struct coloring *c);
+
+struct matrix {
+  size_t n_vertices;
+  size_t nnz;
+  number_t *col_index;  // nnz elements
+  number_t *row_index;  // n_vertices + 1 elements
+};
+
+struct matrix *matrix_create(size_t n_vertices, size_t nnz, void *malloc(size_t));
+
+struct matrix *matrix_create_random(size_t n_vertices, size_t nnz, void *malloc(size_t));
+
+void matrix_ensure_symmetric(struct matrix *m);
+
+void matrix_destroy(struct matrix *m, void free(void *));
+
+void matrix_print(struct matrix *m);
+
+void matrix_as_dot(struct matrix *m, FILE *f);
+
+bool matrix_query(struct matrix *m, number_t i, number_t j);
+
+bool matrix_verify_coloring(struct matrix *m, struct coloring *c);
+
+struct matrix *matrix_induce(struct matrix *m, bool *take, number_t *new_vertex_out, void *malloc(size_t));

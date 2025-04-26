@@ -30,6 +30,7 @@
           ];
           buildInputs = with pkgs; [
             openmpi
+            suitesparse-graphblas
             pkg-config
           ];
         };
