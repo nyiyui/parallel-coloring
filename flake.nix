@@ -27,6 +27,8 @@
               numpy
             ]))
             graphviz
+            gdb
+            valgrind
           ];
           buildInputs = with pkgs; [
             openmpi

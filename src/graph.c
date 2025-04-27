@@ -6,6 +6,7 @@
 #include "graph.h"
 
 char *color_names[] = {
+  "black",
   "red",
   "green",
   "blue",
@@ -14,8 +15,7 @@ char *color_names[] = {
   "orange",
   "pink",
   "brown",
-  "gray",
-  "black"
+  "gray"
 };
 
 const size_t color_names_length = sizeof(color_names) / sizeof(char *);
@@ -252,13 +252,10 @@ bool matrix_query(struct matrix *m, number_t i, number_t j) {
   return false;
 }
 
-bool matrix_verify_coloring(struct matrix *m, struct coloring *c) {
-  if (m == NULL || c == NULL) {
-    return false;
-  }
+bool matrix_verify_coloring(struct matrix *m, struct coloring *c, bool ignore_zero) {
   for (size_t i = 0; i < m->n_vertices; i++) {
     for (size_t j = m->row_index[i]; j < m->row_index[i + 1]; j++) {
-      if (c->colors[i] == c->colors[m->col_index[j]]) {
+      if (c->colors[i] == c->colors[m->col_index[j]] && (!ignore_zero || c->colors[i] != 0)) {
         printf("Invalid coloring at (%lu, %u)\n", i, m->col_index[j]);
         return false;
       }
@@ -321,9 +318,7 @@ struct matrix *matrix_induce(struct matrix *m, bool *take, number_t *new_vertex_
           continue;
         }
         number_t new_destination = new_vertex_out[old_destination];
-        assert(new_destination != -1);
         number_t new_source = new_vertex_out[i];
-        assert(new_source != -1);
         if (new_source >= new_destination) {
           number_t tmp = new_source;
           new_source = new_destination;
@@ -337,4 +332,20 @@ struct matrix *matrix_induce(struct matrix *m, bool *take, number_t *new_vertex_
   }
   free(edge_count_per_row);
   return induced;
+}
+
+void matrix_iterate_edges(struct matrix *m, void (*f)(number_t, number_t, void *), void *data) {
+  for (size_t i = 0; i < m->n_vertices; i++) {
+    for (size_t j = m->row_index[i]; j < m->row_index[i + 1]; j++) {
+      f(i, m->col_index[j], data);
+    }
+  }
+}
+
+void matrix_degree(struct matrix *m, size_t *degree) {
+  assert(m != NULL);
+  assert(degree != NULL);
+  for (size_t i = 0; i < m->n_vertices; i++) {
+    degree[i] = m->row_index[i + 1] - m->row_index[i];
+  }
 }

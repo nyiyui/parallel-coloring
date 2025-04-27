@@ -1,3 +1,5 @@
+#pragma once
+
 #include <stdbool.h>
 #include <stdint.h>
 #include <stddef.h>
@@ -62,6 +64,10 @@ void matrix_as_dot_color(struct matrix *m, FILE *f, struct coloring *c);
 
 bool matrix_query(struct matrix *m, number_t i, number_t j);
 
-bool matrix_verify_coloring(struct matrix *m, struct coloring *c);
+bool matrix_verify_coloring(struct matrix *m, struct coloring *c, bool ignore_zero);
 
 struct matrix *matrix_induce(struct matrix *m, bool *take, number_t *new_vertex_out, void *malloc(size_t));
+
+void matrix_iterate_edges(struct matrix *m, void (*f)(number_t, number_t, void *), void *data);
+
+void matrix_degree(struct matrix *m, size_t *degree);
