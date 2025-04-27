@@ -6,3 +6,5 @@ test_graph.svg
 a.out
 *.o
 vgcore.*
+test_graph
+test_solver
