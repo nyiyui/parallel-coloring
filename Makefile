@@ -12,8 +12,16 @@ test_graph: src/test_graph.c graph.o
 test_solver: src/test_solver.c graph.o solver.o
 	$(CC) -o $@ $^ $(CFLAGS)
 
+test_solver_color: src/test_solver_color.c graph.o solver.o
+	$(CC) -o $@ $^ $(CFLAGS)
+
 test_graph.dot: test_graph
 	./test_graph $@
 
 test_graph.svg: test_graph.dot
 	dot -Tsvg test_graph.dot > $@
+
+clean:
+	rm -f *.o solver test_graph test_solver test_solver_color test_graph.dot test_graph.svg
+
+.PHONY: clean

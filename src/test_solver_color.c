@@ -8,12 +8,12 @@ int main(int argc, char *argv[]) {
   if (argc != 2) {
     filename = "test_graph.dot";
   }
-  struct matrix *m = matrix_create_random(0x40, 0x20, malloc);
+  struct matrix *m = matrix_create_random(0x20, 0x20, malloc);
   if (m == NULL) {
     return 1;
   }
 
-  matrix_print(m);
+  // matrix_print(m);
   
   FILE *f = fopen(filename, "w");
   if (f == NULL) {
@@ -36,15 +36,15 @@ int main(int argc, char *argv[]) {
   }
   c->colors_size = m->n_vertices;
 
-  luby_maximal_independent_set(m, c, 1, NULL);
-
+  color_cliquelike(m, c, 3);
   matrix_verify_coloring(m, c, true);
+  matrix_verify_coloring(m, c, false);
 
   matrix_as_dot_color(m, f, c);
   
   fclose(f);
-  
   matrix_destroy(m, free);
-  
+  free(c->colors);
+  free(c);
   return 0;
 }

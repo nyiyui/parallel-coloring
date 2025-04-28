@@ -8,11 +8,8 @@
 char *color_names[] = {
   "black",
   "red",
-  "green",
   "blue",
-  "yellow",
   "purple",
-  "orange",
   "pink",
   "brown",
   "gray"
@@ -50,7 +47,7 @@ void matrix_al_print(struct matrix_al *m) {
     return;
   }
   for (size_t i = 0; i < m->pairs_size; i++) {
-    printf("(%u, %u)\n", m->pairs[i].i, m->pairs[i].j);
+    printf("(%lu, %lu)\n", m->pairs[i].i, m->pairs[i].j);
   }
 }
 
@@ -60,7 +57,7 @@ void matrix_al_as_dot(struct matrix_al *m, FILE *f) {
   }
   fprintf(f, "graph G {\n");
   for (size_t i = 0; i < m->pairs_size; i++) {
-    fprintf(f, "  %u -- %u;\n", m->pairs[i].i, m->pairs[i].j);
+    fprintf(f, "  %lu -- %lu;\n", m->pairs[i].i, m->pairs[i].j);
   }
   fprintf(f, "}\n");
 }
@@ -75,7 +72,7 @@ void matrix_as_dot_color(struct matrix *m, FILE *f, struct coloring *c) {
       fprintf(f, "  %lu [color=%s];\n", i, color_names[c->colors[i]]);
     }
     for (size_t j = m->row_index[i]; j < m->row_index[i + 1]; j++) {
-      fprintf(f, "  %lu -- %u;\n", i, m->col_index[j]);
+      fprintf(f, "  %lu -- %lu;\n", i, m->col_index[j]);
     }
   }
   fprintf(f, "}\n");
@@ -121,7 +118,7 @@ bool matrix_al_verify_coloring(struct matrix_al *m, struct coloring *c) {
   }
   for (size_t i = 0; i < m->pairs_size; i++) {
     if (c->colors[m->pairs[i].i] == c->colors[m->pairs[i].j]) {
-      printf("Invalid coloring at (%u, %u)\n", m->pairs[i].i, m->pairs[i].j);
+      printf("Invalid coloring at (%lu, %lu)\n", m->pairs[i].i, m->pairs[i].j);
       return false;
     }
   }
@@ -229,7 +226,7 @@ void matrix_as_dot(struct matrix *m, FILE *f) {
   fprintf(f, "graph G {\n");
   for (size_t i = 0; i < m->n_vertices; i++) {
     for (size_t j = m->row_index[i]; j < m->row_index[i + 1]; j++) {
-      fprintf(f, "  %lu -- %u;\n", i, m->col_index[j]);
+      fprintf(f, "  %lu -- %lu;\n", i, m->col_index[j]);
     }
   }
   fprintf(f, "}\n");
@@ -256,7 +253,11 @@ bool matrix_verify_coloring(struct matrix *m, struct coloring *c, bool ignore_ze
   for (size_t i = 0; i < m->n_vertices; i++) {
     for (size_t j = m->row_index[i]; j < m->row_index[i + 1]; j++) {
       if (c->colors[i] == c->colors[m->col_index[j]] && (!ignore_zero || c->colors[i] != 0)) {
-        printf("Invalid coloring at (%lu, %u)\n", i, m->col_index[j]);
+        if (c->colors[i] == 0) {
+          printf("Uncolored vertex %lu\n", i);
+        } else {
+          printf("Invalid coloring at (%lu, %lu)\n", i, m->col_index[j]);
+        }
         return false;
       }
     }

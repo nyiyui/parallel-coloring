@@ -8,3 +8,4 @@ a.out
 vgcore.*
 test_graph
 test_solver
+test_solver_color

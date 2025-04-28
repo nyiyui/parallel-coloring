@@ -5,19 +5,19 @@
 #include "solver.h"
 
 // === luby_maximal_independent_set implementation ===
-// Cite: Eric Vigoda, https://faculty.cc.gatech.edu/~vigoda/RandAlgs/MIS.pdf
+// Cite for algorithm implementation: Eric Vigoda, https://faculty.cc.gatech.edu/~vigoda/RandAlgs/MIS.pdf
 
 struct luby_step2b_arg {
   size_t *degree;
   bool *s;
-  bool *g_prime;
+  const bool *g_prime;
 };
 
 static void luby_step2b(number_t i, number_t j, void *data) {
   struct luby_step2b_arg *arg = (struct luby_step2b_arg *)data;
   size_t *degree = arg->degree;
   bool *s = arg->s;
-  bool *g_prime = arg->g_prime;
+  const bool *g_prime = arg->g_prime;
 
   // every edge must:
   // - be in G' (membership represented by g_prime), and
@@ -55,31 +55,54 @@ bool *alloc_make_neighbours(struct matrix *g, bool *s) {
   return neighbours;
 }
 
-size_t luby_maximal_independent_set(struct matrix *g, struct coloring *c, number_t color) {
+size_t luby_maximal_independent_set(struct matrix *g, struct coloring *c, number_t color, bool *initial_s) {
   assert(c->colors_size == g->n_vertices);
   size_t *degree = calloc(g->n_vertices, sizeof(size_t));
   matrix_degree(g, degree);
+
+  size_t remove_count = 0;
 
   bool *s = calloc(g->n_vertices, sizeof(bool));
   // G' ← G
   bool *g_prime = calloc(g->n_vertices, sizeof(bool));
   for (size_t i = 0; i < g->n_vertices; i++) {
-    g_prime[i] = true;
+    if ((c->colors[i] != 0 && c->colors[i] != color) || degree[i] <= 0) {
+      g_prime[i] = false;
+      remove_count++;
+    } else {
+      g_prime[i] = true;
+    }
   }
 
-  size_t colored_count = 0;
-  size_t remove_count = 0;
-  // while G' is not the empty graph
-  while (remove_count < g->n_vertices) {
-    memset(s, 0, g->n_vertices * sizeof(bool));
-    // Choose a random set of vertices S in G' by selecting each vertex v
-    // independently with probability 1/(2d(v)).
+    printf("remove_count: %lu\n", remove_count);
+    printf("g->n_vertices: %lu\n", g->n_vertices);
+    size_t g_prime_size = 0;
     for (size_t i = 0; i < g->n_vertices; i++) {
       if (g_prime[i]) {
-        if (degree[i] == 0) {
-          s[i] = true;
-        } else if (random() % (2 * degree[i]) == 0) {
-          s[i] = true;
+        g_prime_size++;
+      }
+    }
+    printf("g_prime_size: %lu\n", g_prime_size);
+    printf("g->n_vertices minus remove_count: %lu\n", g->n_vertices - remove_count);
+    printf("===\n");
+
+  size_t colored_count = 0;
+  size_t iter_count = 0;
+  // while G' is not the empty graph
+  while (remove_count < g->n_vertices) {
+    if (initial_s != NULL) {
+      memcpy(s, initial_s, g->n_vertices * sizeof(bool));
+      initial_s = NULL;
+    } else {
+      memset(s, 0, g->n_vertices * sizeof(bool));
+      // Choose a random set of vertices S in G' by selecting each vertex v
+      // independently with probability 1/(2d(v)).
+      for (size_t i = 0; i < g->n_vertices; i++) {
+        if (g_prime[i]) {
+          assert(degree[i] > 0);
+          if (random() % (2 * degree[i]) == 0) {
+            s[i] = true;
+          }
         }
       }
     }
@@ -103,7 +126,7 @@ size_t luby_maximal_independent_set(struct matrix *g, struct coloring *c, number
     // on V' \ (S ⋃ neighbours of S) where V' is the previous vertex set.
     bool *is_neighbour = alloc_make_neighbours(g, s);
     for (size_t i = 0; i < g->n_vertices; i++) {
-      if (s[i] || is_neighbour[i]) {
+      if ((s[i] || is_neighbour[i]) && g_prime[i]) {
         g_prime[i] = false;
         remove_count++;
       }
@@ -112,6 +135,15 @@ size_t luby_maximal_independent_set(struct matrix *g, struct coloring *c, number
     printf("remove_count: %lu\n", remove_count);
     printf("colored_count: %lu\n", colored_count);
     printf("g->n_vertices: %lu\n", g->n_vertices);
+    size_t g_prime_size = 0;
+    for (size_t i = 0; i < g->n_vertices; i++) {
+      if (g_prime[i]) {
+        g_prime_size++;
+      }
+    }
+    assert(g_prime_size == g->n_vertices - remove_count);
+    printf("iter_count: %lu\n", iter_count);
+    iter_count++;
   }
 
   free(s);
@@ -135,6 +167,7 @@ void find_initial_constraints(number_t u, number_t v, void *data) {
   size_t *constrained_vertices = arg->constrained_vertices;
 #define k arg->k
 #define filled arg->filled
+  assert(k >= 2);
   assert(filled <= k);
   if (filled == k) {
     return;
@@ -163,7 +196,7 @@ void find_initial_constraints(number_t u, number_t v, void *data) {
       filled++;
     } else if (!u_constrained && v_constrained) {
       // add u to constrained_vertices
-      constrained_vertices[filled] = v;
+      constrained_vertices[filled] = u;
       filled++;
     } else if (!u_constrained && !v_constrained) {
       // u and v may be constrained after all, or not...
@@ -190,20 +223,31 @@ void color_cliquelike(struct matrix *g, struct coloring *c, size_t k) {
   arg.filled = 0;
   matrix_iterate_edges(g, find_initial_constraints, &arg);
 
-  // even though arg.constrained_vertices may not be enough, try anyway:
   size_t colored_count = 0;
-#pragma omp parallel for reduction( + : colored_count ) shared(g) shared(c)
+
+  // color all isolated vertices
+  size_t *degree = calloc(g->n_vertices, sizeof(size_t));
+  matrix_degree(g, degree);
+  for (size_t i = 0; i < g->n_vertices; i++) {
+    if (degree[i] == 0) {
+      c->colors[i] = 1;
+      colored_count++;
+    }
+  }
+  free(degree);
+
+  // even though arg.constrained_vertices may not be enough, try anyway:
   for (size_t i = 0; i < arg.filled; i ++) {
-    // TODO: force Luby to start at a set vertex (add initial set S as param)
-    colored_count += luby_maximal_independent_set(g, c, i+1);
+    printf("coloring vertex from vertex %lu\n", arg.constrained_vertices[i]);
+    bool *initial_s = calloc(g->n_vertices, sizeof(bool));
+    initial_s[arg.constrained_vertices[i]] = true;
+    colored_count += luby_maximal_independent_set(g, c, i+1, initial_s);
+    free(initial_s);
   }
 
-  assert(colored_count <= g->n_vertices);
-  if (colored_count == g->n_vertices) {
-    // already done
-    return;
-  }
+  free(arg.constrained_vertices);
 
   // pick an uncolored thing, and then…
   // TODO
+  return;
 }
