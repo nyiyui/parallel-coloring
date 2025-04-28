@@ -161,7 +161,6 @@ size_t luby_maximal_independent_set(struct matrix *g, struct coloring *c, number
 // === color_cliquelike implementation ===
 
 struct find_initial_constraints_arg {
-  struct matrix *g;
   size_t *constrained_vertices;
   size_t k;
   size_t filled;
@@ -169,7 +168,6 @@ struct find_initial_constraints_arg {
 
 void find_initial_constraints(number_t u, number_t v, void *data) {
   struct find_initial_constraints_arg *arg = (struct find_initial_constraints_arg *) data;
-  struct matrix *g = arg->g;
   size_t *constrained_vertices = arg->constrained_vertices;
 #define k arg->k
 #define filled arg->filled
@@ -223,7 +221,6 @@ void color_cliquelike(struct matrix *g, struct coloring *c, size_t k) {
   // find initial constraints where results are known to have different colors
   // these constraints will be used to run Luby's in parallel later
   struct find_initial_constraints_arg arg;
-  arg.g = g;
   arg.constrained_vertices = malloc(k * sizeof(size_t));
   arg.k = k;
   arg.filled = 0;
