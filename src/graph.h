@@ -48,13 +48,13 @@ struct matrix {
   number_t *row_index;  // n_vertices + 1 elements
 };
 
-struct matrix *matrix_create(size_t n_vertices, size_t nnz, void *malloc(size_t));
+struct matrix *matrix_create(size_t n_vertices, size_t nnz);
 
-struct matrix *matrix_create_random(size_t n_vertices, size_t nnz, void *malloc(size_t));
+struct matrix *matrix_create_random(size_t n_vertices, size_t nnz);
 
 void matrix_ensure_symmetric(struct matrix *m);
 
-void matrix_destroy(struct matrix *m, void free(void *));
+void matrix_destroy(struct matrix *m);
 
 void matrix_print(struct matrix *m);
 
@@ -66,7 +66,7 @@ bool matrix_query(struct matrix *m, number_t i, number_t j);
 
 bool matrix_verify_coloring(struct matrix *m, struct coloring *c, bool ignore_zero);
 
-struct matrix *matrix_induce(struct matrix *m, bool *take, number_t *new_vertex_out, void *malloc(size_t));
+struct matrix *matrix_induce(struct matrix *m, bool *take, number_t *new_vertex_out);
 
 void matrix_iterate_edges(struct matrix *m, void (*f)(number_t, number_t, void *), void *data);
 

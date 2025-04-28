@@ -74,6 +74,7 @@ size_t luby_maximal_independent_set(struct matrix *g, struct coloring *c, number
     }
   }
 
+#ifdef DEBUG
     printf("remove_count: %lu\n", remove_count);
     printf("g->n_vertices: %lu\n", g->n_vertices);
     size_t g_prime_size = 0;
@@ -85,9 +86,12 @@ size_t luby_maximal_independent_set(struct matrix *g, struct coloring *c, number
     printf("g_prime_size: %lu\n", g_prime_size);
     printf("g->n_vertices minus remove_count: %lu\n", g->n_vertices - remove_count);
     printf("===\n");
+#endif
 
   size_t colored_count = 0;
+#ifdef DEBUG
   size_t iter_count = 0;
+#endif
   // while G' is not the empty graph
   while (remove_count < g->n_vertices) {
     if (initial_s != NULL) {
@@ -132,6 +136,7 @@ size_t luby_maximal_independent_set(struct matrix *g, struct coloring *c, number
       }
     }
     free(is_neighbour);
+#ifdef DEBUG
     printf("remove_count: %lu\n", remove_count);
     printf("colored_count: %lu\n", colored_count);
     printf("g->n_vertices: %lu\n", g->n_vertices);
@@ -144,6 +149,7 @@ size_t luby_maximal_independent_set(struct matrix *g, struct coloring *c, number
     assert(g_prime_size == g->n_vertices - remove_count);
     printf("iter_count: %lu\n", iter_count);
     iter_count++;
+#endif
   }
 
   free(s);
@@ -246,8 +252,5 @@ void color_cliquelike(struct matrix *g, struct coloring *c, size_t k) {
   }
 
   free(arg.constrained_vertices);
-
-  // pick an uncolored thing, and then…
-  // TODO
   return;
 }

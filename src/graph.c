@@ -125,19 +125,34 @@ bool matrix_al_verify_coloring(struct matrix_al *m, struct coloring *c) {
   return true;
 }
 
-struct matrix *matrix_create(size_t n_vertices, size_t nnz, void *malloc(size_t)) {
+struct matrix *matrix_create(size_t n_vertices, size_t nnz) {
   struct matrix *m = malloc(sizeof(struct matrix));
+  if (m == NULL) {
+    return NULL;
+  }
   m->n_vertices = n_vertices;
   m->nnz = nnz;
   m->col_index = malloc(nnz * sizeof(number_t));
+  if (m->col_index == NULL) {
+    free(m);
+    return NULL;
+  }
   m->row_index = malloc((n_vertices + 1) * sizeof(number_t));
+  if (m->row_index == NULL) {
+    free(m->col_index);
+    free(m);
+    return NULL;
+  }
   return m;
 }
 
-struct matrix *matrix_create_random(size_t n_vertices, size_t nnz, void *malloc(size_t)) {
+struct matrix *matrix_create_random(size_t n_vertices, size_t nnz) {
   // TODO: make a random adjacency matrix first, then convert it to CSR
   //       inefficient but easy to implement
   number_t *am = calloc(n_vertices * n_vertices, sizeof(number_t));
+  if (am == NULL) {
+    return NULL;
+  }
   for (size_t count = 0; count < nnz;) {
     number_t i = random() % n_vertices;
     number_t j = random() % n_vertices;
@@ -151,7 +166,7 @@ struct matrix *matrix_create_random(size_t n_vertices, size_t nnz, void *malloc(
     count++;
   }
 
-  struct matrix *m = matrix_create(n_vertices, 2*nnz, malloc);
+  struct matrix *m = matrix_create(n_vertices, 2*nnz);
   if (m == NULL) {
     free(am);
     return NULL;
@@ -185,7 +200,7 @@ struct matrix *matrix_create_random(size_t n_vertices, size_t nnz, void *malloc(
   return m;
 }
 
-void matrix_destroy(struct matrix *m, void free(void *)) {
+void matrix_destroy(struct matrix *m) {
   if (m == NULL) {
     return;
   }
@@ -265,7 +280,7 @@ bool matrix_verify_coloring(struct matrix *m, struct coloring *c, bool ignore_ze
   return true;
 }
 
-struct matrix *matrix_induce(struct matrix *m, bool *take, number_t *new_vertex_out, void *malloc(size_t)) {
+struct matrix *matrix_induce(struct matrix *m, bool *take, number_t *new_vertex_out) {
   if (m == NULL || take == NULL) {
     return NULL;
   }
@@ -282,6 +297,9 @@ struct matrix *matrix_induce(struct matrix *m, bool *take, number_t *new_vertex_
   // to get nnz, count edges that have both ends in take
   size_t induced_nnz = 0;
   number_t *edge_count_per_row = calloc(m->n_vertices, sizeof(number_t));
+  if (edge_count_per_row == NULL) {
+    return NULL;
+  }
   for (size_t i = 0; i < m->n_vertices; i++) {
     for (size_t j = m->row_index[i]; j < m->row_index[i+1]; j++) {
       if (take[i] && take[m->col_index[j]]) {
@@ -292,7 +310,7 @@ struct matrix *matrix_induce(struct matrix *m, bool *take, number_t *new_vertex_
   }
 
   // === create and fill induced matrix ===
-  struct matrix *induced = matrix_create(induced_n_vertices, induced_nnz, malloc);
+  struct matrix *induced = matrix_create(induced_n_vertices, induced_nnz);
   if (induced == NULL) {
     free(edge_count_per_row);
     return NULL;
