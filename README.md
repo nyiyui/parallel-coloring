@@ -36,7 +36,8 @@ A tree decomposition of a graph is a tree where each node is mapped to a vertex 
 In the figure below, the tree decomposition is shown below the graph.
 The tree decomposition shown has the minimum width.
 Since the minimum width of the tree decomposition is 2, the treewidth of the graph is 2.
-![A graph and its tree decomposition with a minimum width on the decomposition's edges](https://upload.wikimedia.org/wikipedia/commons/a/a7/Tree_decomposition.svg)
+![A graph and its tree decomposition with a minimum width on the decomposition's edges](https://upload.wikimedia.org/wikipedia/commons/thumb/a/a7/Tree_decomposition.svg/452px-Tree_decomposition.svg.png)
+
 Figure 1. A graph and its tree decomposition with a minimum width on the decomposition's edges. David Eppstein, Public domain, via Wikimedia Commons
 
 **Example application for job scheduling.**
