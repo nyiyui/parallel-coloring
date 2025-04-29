@@ -39,6 +39,7 @@ Since the minimum width of the tree decomposition is 2, the treewidth of the gra
 ![A graph and its tree decomposition with a minimum width on the decomposition's edges](https://upload.wikimedia.org/wikipedia/commons/thumb/a/a7/Tree_decomposition.svg/452px-Tree_decomposition.svg.png)
 
 Figure 1. A graph and its tree decomposition with a minimum width on the decomposition's edges. David Eppstein, Public domain, via Wikimedia Commons
+(If the background is clear the edges are being hidden; click the image to see the edges.)
 
 **Example application for job scheduling.**
 Each task is represented by a vertex. Each dependency is represented by an edge.
