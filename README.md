@@ -12,7 +12,7 @@ In the Methods section, the algorithm is described and its correctness is argued
 In the Results section, the results of the project are presented and discussed.
 Finally, the Conclusion section summarizes the project and discusses future work.
 
-### Motivation
+### Motivating Applications
 
 Parallel (scientific) computing programs and compilers both have a dependency on job dependency, often modeled using a graph structure.
 
@@ -27,24 +27,35 @@ In a "real world" example, a compiler would do this as part or a larger algorith
 3. Find a k-coloring of the graph (k is the number of registers). Note that k is usually very small compared to the number of variables (e.g. k=16 for x86-64, k=31 for ARM64).
 4. Most likely, not all variables can be mapped to registers, so the compiler will have to put some variables in memory ("spill").
 
+Note that register allocation graphs are usually sparse.
+Although not a direct measure of sparsity, [Cai 2025](https://doi.org/10.1145/3669940.3707286) notes that the treewidth (see next paragraph) of a register allocation graph at most 7, and at most 6 for most C programs.
+This means that the number of edges is very low between clusters (i.e. set of vertices that are mapped to a single vertex in the tree decomposition with minimum width), and therefore the graph is sparse.
+
+One definition of the treewidth of a graph is the minimum width of all tree decompositions of said graph ([O'Donnell 2013](https://www.cs.cmu.edu/~odonnell/toolkit13/lecture17.pdf)).
+A tree decomposition of a graph is a tree where each node is mapped to a vertex on a tree.
+In the figure below, the tree decomposition is shown below the graph.
+The tree decomposition shown has the minimum width.
+Since the minimum width of the tree decomposition is 2, the treewidth of the graph is 2.
+![A graph and its tree decomposition with a minimum width on the decomposition's edges](https://upload.wikimedia.org/wikipedia/commons/a/a7/Tree_decomposition.svg)
+Figure 1. A graph and its tree decomposition with a minimum width on the decomposition's edges. David Eppstein, Public domain, via Wikimedia Commons
+
 **Example application for job scheduling.**
 Each task is represented by a vertex. Each dependency is represented by an edge.
 A k-coloring of this graph represents a scheduling of the tasks, such that no two tasks that are dependent on each other are scheduled at the same time.
+Since each dependency is represented by an edge, the graph must be simple (it would not make sense to have a dependency between two tasks that are the same task).
+Additionally, a dense graph usually has cycling dependencies, which would make it impossible to schedule the tasks.
+Therefore, in most cases, the graph is sparse, and a k-coloring algorithm for sparse graphs is appropriate.
 
-[Leighton 1979](https://nvlpubs.nist.gov/nistpubs/jres/84/jresv84n6p489_a1b.pdf) has a few other applications:
+[Leighton 1979](https://nvlpubs.nist.gov/nistpubs/jres/84/jresv84n6p489_a1b.pdf) lists a few other applications:
 - exam scheduling in the minimum number of time slots
 - storing chemicals in a minimum number of containers (where two chemicals cannot be stored in the same container if they react with each other)
 
-TODO: why sparse graph?
-
 ### The Nature of the Graph
 
+This section describes the nature of the graph used in this project.
 The graph is assumed to be sparse, i.e. the number of edges is much smaller than the number of vertices squared.
-
-We assume to take a register allocation graph, and make a few assumptions about the graph:
-- THe graph is simple.
-- The graph is connected.
-- The graph is undirected.
+Additionally, the graph is assumed to be simple, connected, and undirected.
+To simplify testing, the graph will have an equal number of vertices and edges in most cases.
 
 ### Independent Set
 
@@ -57,8 +68,10 @@ Note that the optimal k-coloring of a graph is NP-hard, so we will not attempt t
 
 TODO: serial algorithm, general consturction
 
-Luby's ([Luby 1986](https://courses.csail.mit.edu/6.852/08/papers/Luby.pdf), section 3.2 "Algorithm B") algorithm is a randomized algorithm for finding a maximal independent set of a graph.
-The algorithm runs in paralell on a concurrent read exclusive write parallel RAM (CREW PRAM) model.
+### Known Algorithms
+
+Luby's algorithm ([Luby 1986](https://courses.csail.mit.edu/6.852/08/papers/Luby.pdf), section 3.2 "Algorithm B") is a randomized algorithm for finding a maximal independent set of a graph.
+The algorithm runs in parallel on a concurrent read exclusive write parallel RAM (CREW PRAM) model.
 
 ## Methods
 
@@ -88,7 +101,7 @@ The algorithm is a trivial application of Luby's maximal independent set algorit
 The algorithm is as follows (explanation in parentheses):
 1. Find the vertex with the largest degree, `v`.
 2. Create sets `initial_s[0]` to `initial_s[k-1]` which each (combined) partition the set containing `v` and its neighbors.
-3. Run Luby's maximal independent set algorithm on each of the sets `initial_s[i]`.
+3. Run Luby's maximal independent set algorithm on each of the sets `initial_s[i]`, with the graph where all vertices that are colored are removed.
   - (Note there is no data dependency between the sets, so they can be run in parallel.)
 4. Color all isolated vertices (i.e. vertices with degree 0) with an arbitrary color.
 5. Done
@@ -96,7 +109,12 @@ The algorithm is as follows (explanation in parentheses):
 Correctness:
 Since the sets `initial_s[i]` are disjoint, the algorithm is guaranteed to give a valid k-coloring of the graph.
 
-Note that we use a modified Lbuy's algorithm:
+Parallelism:
+The algorithm cannot be run in a data-parallel manner as each iteration of Luby's algorithm (step 3) is dependent on the previous iteration (previous iterations could color a vertex that could be colored by multiple colors).
+The algorithm can be parallelized by domain decomposition, by performing a tree decomposition and coloring each tree vertex in parallel.
+Communication/coordination between the threads is required to ensure that the tree decomposition is valid and that the coloring is correct.
+
+Note that we use a modified Luby's algorithm:
 1. Construct `degree` such that `degree[v]` is the degree of vertex `v`.
 2. Let `g_prime` be the given graph.
 3. While `g_prime` is not empty:
@@ -111,6 +129,15 @@ At each stage, we see that `s` is added to the independent set.
 Since we remove `s` and its neighbors from `g_prime`, we are guaranteed that our independent set is valid.
 Now, once `g_prime` is empty, all vertices have been either colored or was a neighbor of a colored vertex.
 Therefore, we are guaranteed that our independent set is valid and maximal when we halt.
+
+Parallelism:
+The algorithm can be parallelized (in a data-parallel manner) by running steps 1, 3.1, 3.2, and 3.3 in parallel (with no coordination between the threads other than fork and join).
+
+### Parameters
+
+The following parameters are used in the project:
+- `n_vertices`: number of vertices in the graph.
+- `nnz`: number of edges in the graph.
 
 > Sufficient info to plausibly replicate
 > project with little further info needed.
