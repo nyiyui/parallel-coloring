@@ -5,7 +5,12 @@
 
 ## Introduction
 
-This program attempts to do a k-coloring of an arbitrary graph.
+This program attempts to do a k-coloring of a sparse graph.
+
+This project report first explains the motivation of a k-coloring on a sparse graph, then describes some background on the graph and the algorithm used to do the k-coloring.
+In the Methods section, the algorithm is described and its correctness is argued. Various implementation details are discussed to allow a reader to replicate the project. Additionally, the methodology used to obtain the results is described.
+In the Results section, the results of the project are presented and discussed.
+Finally, the Conclusion section summarizes the project and discusses future work.
 
 ### Motivation
 
@@ -30,6 +35,8 @@ A k-coloring of this graph represents a scheduling of the tasks, such that no tw
 - exam scheduling in the minimum number of time slots
 - storing chemicals in a minimum number of containers (where two chemicals cannot be stored in the same container if they react with each other)
 
+TODO: why sparse graph?
+
 ### The Nature of the Graph
 
 The graph is assumed to be sparse, i.e. the number of edges is much smaller than the number of vertices squared.
@@ -39,32 +46,71 @@ We assume to take a register allocation graph, and make a few assumptions about 
 - The graph is connected.
 - The graph is undirected.
 
-### Algorithms
-
-- Graph is immutable, so sharing is "easy"
-
-#### Independent Set
+### Independent Set
 
 The independent set of a graph is a set of vertices such that no two vertices in the set are adjacent.
 A maximal independent set (MIS) is an independent set that cannot be extended by adding an adjacent vertex.
 
 A MIS of a graph corresponds to a single color in a k-coloring of the graph.
 
+Note that the optimal k-coloring of a graph is NP-hard, so we will not attempt to find the optimal k-coloring. We will just find a k-coloring of the graph.
+
 TODO: serial algorithm, general consturction
 
-TODO: Luby
+Luby's ([Luby 1986](https://courses.csail.mit.edu/6.852/08/papers/Luby.pdf), section 3.2 "Algorithm B") algorithm is a randomized algorithm for finding a maximal independent set of a graph.
+The algorithm runs in paralell on a concurrent read exclusive write parallel RAM (CREW PRAM) model.
 
 ## Methods
+
+This project was implemented using OpenMP and OpenMPI.
+The code generates a random graph, performs a k-coloring of graph (where k large enough to guarantee a coloring), and then verifies that the coloring is correct.
+To check that the parallelism is correct, the code runs the serial version of the algorithm and compares the results.
+The results are in [DOT](https://graphviz.org/doc/info/lang.html) format, and results are compared by verifying the files are bit-for-bit identical.
+Although this method of checking the result is stricter than necessary, it is a good way to ensure that the parallelism is correct.
+
+### Graph Properties
 
 The graph will be given in adjacency matrix format, where the matrix itself is represented in compressed sparse row storage (CSR) format.
 Since we assume the graph is not mutated in any step of any algorithm, there is no concern of mutations "locking up" the graph in a parallel algorithm.
 
-Requirements for the graph object:
-- Represent a simple graph with an ID for each vertex.
-- Create a random simple graph of n vertices.
-- Output the graph to dot format.
-- Return whether two vertices are adjacent.
-- Create a new induced subgraph with the same IDs for each vertex.
+Requirements for the graph object (implemented in `./src/graph.h` and `./src/graph.c`):
+- Represent a simple graph (`struct matrix`).
+- Create a random simple graph of n vertices and m edges (`struct matrix *matrix_create_random(size_t n_vertices, size_t nnz)`).
+- Output the graph to dot format (`void matrix_as_dot(struct matrix *m, FILE *f)`).
+- Return whether two vertices are adjacent (`bool matrix_query(struct matrix *m, number_t i, number_t j)`).
+- Return the degree of each vertex (`void matrix_degree(struct matrix *m, size_t *degree)`).
+
+### Algorithm
+
+Implementation in `./src/solver.h` and `./src/solver.c`.
+
+The algorithm is a trivial application of Luby's maximal independent set algorithm.
+The algorithm is as follows (explanation in parentheses):
+1. Find the vertex with the largest degree, `v`.
+2. Create sets `initial_s[0]` to `initial_s[k-1]` which each (combined) partition the set containing `v` and its neighbors.
+3. Run Luby's maximal independent set algorithm on each of the sets `initial_s[i]`.
+  - (Note there is no data dependency between the sets, so they can be run in parallel.)
+4. Color all isolated vertices (i.e. vertices with degree 0) with an arbitrary color.
+5. Done
+
+Correctness:
+Since the sets `initial_s[i]` are disjoint, the algorithm is guaranteed to give a valid k-coloring of the graph.
+
+Note that we use a modified Lbuy's algorithm:
+1. Construct `degree` such that `degree[v]` is the degree of vertex `v`.
+2. Let `g_prime` be the given graph.
+3. While `g_prime` is not empty:
+  1. Construct set `s` by selecting each vertex from `g_prime` with probability `1/(2*degree[v])`.
+  2. For every edge `(u,v)` in `g_prime` and which have both endpoints in `s`, remove the vertex of lower degree from `g_prime` (break ties arbitrarily).
+  3. Color all vertices in `s` with our given color.
+  4. Remove `s` and its neighbors from `g_prime`.
+4. Done
+
+Correctness:
+At each stage, we see that `s` is added to the independent set.
+Since we remove `s` and its neighbors from `g_prime`, we are guaranteed that our independent set is valid.
+Now, once `g_prime` is empty, all vertices have been either colored or was a neighbor of a colored vertex.
+Therefore, we are guaranteed that our independent set is valid and maximal when we halt.
 
 > Sufficient info to plausibly replicate
 > project with little further info needed.
@@ -81,6 +127,20 @@ Requirements for the graph object:
 > introduction. Results presented within
 > that context. Implications of results
 > discussed and explained. [4 pts]
+
+### Preliminary Analysis
+
+`./preliminary_parallel_perf_check.sbatch`
+
+thread-to-thread speedup of the parallel implementation of the MIS algorithm.
+
+| Threads | Time (s) | Efficiency |
+|---------|----------|------------|
+| 1       | 0.537425 |      1000‰ |
+| 2       | 0.318460 |       843‰ |
+| 4       | 0.183991 |       730‰ |
+| 8       | 0.201795 |       333‰ |
+| 16      | 0.188300 |       178‰ |
 
 ## Conclusion
 

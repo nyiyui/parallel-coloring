@@ -126,17 +126,26 @@ bool matrix_al_verify_coloring(struct matrix_al *m, struct coloring *c) {
 }
 
 struct matrix *matrix_create(size_t n_vertices, size_t nnz) {
+#ifdef DEBUG
+  printf("allocate matrix - %x bytes\n", sizeof(struct matrix));
+#endif
   struct matrix *m = malloc(sizeof(struct matrix));
   if (m == NULL) {
     return NULL;
   }
   m->n_vertices = n_vertices;
   m->nnz = nnz;
+#ifdef DEBUG
+  printf("allocate matrix.col_index - %x bytes\n", nnz * sizeof(number_t));
+#endif
   m->col_index = malloc(nnz * sizeof(number_t));
   if (m->col_index == NULL) {
     free(m);
     return NULL;
   }
+#ifdef DEBUG
+  printf("allocate matrix.row_index - %x bytes\n", (n_vertices + 1) * sizeof(number_t));
+#endif
   m->row_index = malloc((n_vertices + 1) * sizeof(number_t));
   if (m->row_index == NULL) {
     free(m->col_index);
@@ -149,6 +158,7 @@ struct matrix *matrix_create(size_t n_vertices, size_t nnz) {
 struct matrix *matrix_create_random(size_t n_vertices, size_t nnz) {
   // TODO: make a random adjacency matrix first, then convert it to CSR
   //       inefficient but easy to implement
+  printf("allocate matrix - %x bytes\n", (n_vertices * n_vertices) * sizeof(number_t));
   number_t *am = calloc(n_vertices * n_vertices, sizeof(number_t));
   if (am == NULL) {
     return NULL;
@@ -355,6 +365,8 @@ struct matrix *matrix_induce(struct matrix *m, bool *take, number_t *new_vertex_
 
 void matrix_iterate_edges(struct matrix *m, void (*f)(number_t, number_t, void *), void *data) {
   for (size_t i = 0; i < m->n_vertices; i++) {
+    // _OPENMP: inner loop is serial, but inner loop has maximum of max(degree) iterations,
+    //          which is expected to be small (<10)
     for (size_t j = m->row_index[i]; j < m->row_index[i + 1]; j++) {
       f(i, m->col_index[j], data);
     }

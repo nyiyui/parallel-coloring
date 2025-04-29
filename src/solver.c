@@ -7,52 +7,22 @@
 // === luby_maximal_independent_set implementation ===
 // Cite for algorithm implementation: Eric Vigoda, https://faculty.cc.gatech.edu/~vigoda/RandAlgs/MIS.pdf
 
-struct luby_step2b_arg {
-  size_t *degree;
-  bool *s;
-  const bool *g_prime;
-};
-
-static void luby_step2b(number_t i, number_t j, void *data) {
-  struct luby_step2b_arg *arg = (struct luby_step2b_arg *)data;
-  size_t *degree = arg->degree;
-  bool *s = arg->s;
-  const bool *g_prime = arg->g_prime;
-
-  // every edge must:
-  // - be in G' (membership represented by g_prime), and
-  // - have both endpoints in S (membership represented by s)
-  if (s[i] && s[j] && g_prime[i] && g_prime[j]) {
-    // remove the vertex of lower degree
-    if (degree[i] < degree[j]) {
-      arg->s[i] = false;
-    } else { // tie breaked arbitrarily
-      arg->s[j] = false;
+bool *alloc_make_neighbors(struct matrix *g, bool *s) {
+  bool *neighbors = calloc(g->n_vertices, sizeof(bool));
+#pragma omp parallel for shared(neighbors)
+  for (size_t i = 0; i < g->n_vertices; i++) {
+    // _OPENMP: inner loop is serial, but inner loop has maximum of max(degree) iterations,
+    //          which is expected to be small (<10)
+    for (size_t j = g->row_index[i]; j < g->row_index[i + 1]; j++) {
+      size_t u = i;
+      size_t v = g->col_index[j];
+      if (s[u] || s[v]) {
+        neighbors[u] = true;
+        neighbors[v] = true;
+      }
     }
   }
-}
-
-struct mark_neighbour_arg {
-  bool *s;
-  bool *neighbours;
-};
-
-static void mark_neighbour(number_t i, number_t j, void *data) {
-  struct mark_neighbour_arg *arg = (struct mark_neighbour_arg *)data;
-
-  if (arg->s[i] || arg->s[j]) {
-    arg->neighbours[i] = true;
-    arg->neighbours[j] = true;
-  }
-}
-
-bool *alloc_make_neighbours(struct matrix *g, bool *s) {
-  bool *neighbours = calloc(g->n_vertices, sizeof(bool));
-  struct mark_neighbour_arg arg;
-  arg.s = s;
-  arg.neighbours = neighbours;
-  matrix_iterate_edges(g, mark_neighbour, &arg);
-  return neighbours;
+  return neighbors;
 }
 
 size_t luby_maximal_independent_set(struct matrix *g, struct coloring *c, number_t color, bool *initial_s) {
@@ -65,6 +35,7 @@ size_t luby_maximal_independent_set(struct matrix *g, struct coloring *c, number
   bool *s = calloc(g->n_vertices, sizeof(bool));
   // G' ← G
   bool *g_prime = calloc(g->n_vertices, sizeof(bool));
+#pragma omp parallel for shared(g_prime) reduction(+:remove_count)
   for (size_t i = 0; i < g->n_vertices; i++) {
     if ((c->colors[i] != 0 && c->colors[i] != color) || degree[i] <= 0) {
       g_prime[i] = false;
@@ -101,6 +72,7 @@ size_t luby_maximal_independent_set(struct matrix *g, struct coloring *c, number
       memset(s, 0, g->n_vertices * sizeof(bool));
       // Choose a random set of vertices S in G' by selecting each vertex v
       // independently with probability 1/(2d(v)).
+#pragma omp parallel for shared(s)
       for (size_t i = 0; i < g->n_vertices; i++) {
         if (g_prime[i]) {
           assert(degree[i] > 0);
@@ -113,11 +85,33 @@ size_t luby_maximal_independent_set(struct matrix *g, struct coloring *c, number
 
     // For every edge (u, v) ∈ E(G') if both endpoints are in S then remove
     // the vertex of lower degree from S (break ties arbitrarily).
-    struct luby_step2b_arg arg;
-    arg.degree = degree;
-    arg.s = s;
-    arg.g_prime = g_prime;
-    matrix_iterate_edges(g, luby_step2b, &arg);
+    /*struct luby_step2b_arg arg;*/
+    /*arg.degree = degree;*/
+    /*arg.s = s;*/
+    /*arg.g_prime = g_prime;*/
+    /*matrix_iterate_edges(g, luby_step2b, &arg);*/
+    {
+      // _OPENMP: inner loop is serial, but inner loop has maximum of max(degree) iterations,
+      //          which is expected to be small (<10)
+#pragma omp parallel for shared(s)
+      for (size_t i = 0; i < g->n_vertices; i++) {
+        for (size_t j = g->row_index[i]; j < g->row_index[i + 1]; j++) {
+          size_t u = i;
+          size_t v = g->col_index[j];
+          // every edge must:
+          // - be in G' (membership represented by g_prime), and
+          // - have both endpoints in S (membership represented by s)
+          if (s[u] && s[v] && g_prime[u] && g_prime[v]) {
+            // remove the vertex of lower degree
+            if (degree[u] < degree[v]) {
+              s[u] = false;
+            } else { // tie breaked arbitrarily
+              s[v] = false;
+            }
+          }
+        }
+      }
+    }
 
     // add S to our independent set
     for (size_t i = 0; i < g->n_vertices; i++) {
@@ -126,9 +120,9 @@ size_t luby_maximal_independent_set(struct matrix *g, struct coloring *c, number
         colored_count++;
       }
     }
-    // G' = G'\(S ⋃ neighbours of S), i.e., G' is the induced subgraph
-    // on V' \ (S ⋃ neighbours of S) where V' is the previous vertex set.
-    bool *is_neighbour = alloc_make_neighbours(g, s);
+    // G' = G'\(S ⋃ neighbors of S), i.e., G' is the induced subgraph
+    // on V' \ (S ⋃ neighbors of S) where V' is the previous vertex set.
+    bool *is_neighbour = alloc_make_neighbors(g, s);
     for (size_t i = 0; i < g->n_vertices; i++) {
       if ((s[i] || is_neighbour[i]) && g_prime[i]) {
         g_prime[i] = false;

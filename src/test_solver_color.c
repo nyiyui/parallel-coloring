@@ -1,8 +1,10 @@
 #include <stdlib.h>
 #include <string.h>
+#include <omp.h>
 
 #include "graph.h"
 #include "solver.h"
+#include "util.h"
 
 static size_t n_vertices = 0;
 static size_t nnz = 0;
@@ -58,25 +60,31 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
+  double t01_start = get_wtime();
+  printf("matrix_create_random(%zu, %zu)\n", n_vertices, nnz);
   struct matrix *m = matrix_create_random(n_vertices, nnz);
   if (m == NULL) {
     return 1;
   }
+  double t02_create_random_matrix = get_wtime();
 
   // matrix_print(m);
   
+  printf("opening file %s\n", filename);
   FILE *f = fopen(filename, "w");
   if (f == NULL) {
     matrix_destroy(m);
     return 1;
   }
 
+  printf("allocate coloring - %x bytes\n", sizeof(struct coloring));
   struct coloring *c = malloc(sizeof(struct coloring));
   if (c == NULL) {
     fclose(f);
     matrix_destroy(m);
     return 1;
   }
+  printf("allocate coloring.colors - %x bytes\n", m->n_vertices * sizeof(number_t));
   c->colors = calloc(m->n_vertices, sizeof(number_t));
   if (c->colors == NULL) {
     free(c);
@@ -86,6 +94,7 @@ int main(int argc, char *argv[]) {
   }
   c->colors_size = m->n_vertices;
 
+  printf("allocate degree - %x bytes\n", m->n_vertices * sizeof(size_t));
   size_t *degree = malloc(m->n_vertices * sizeof(size_t));
   if (degree == NULL) {
     free(c->colors);
@@ -102,8 +111,14 @@ int main(int argc, char *argv[]) {
     }
   }
 
+  double t03_etc = get_wtime();
+
+  printf("max degree: %zu\n", max_degree);
+
   color_cliquelike(m, c, max_degree);
+  double t04_color_cliquelike = get_wtime();
   matrix_as_dot_color(m, f, c);
+  double t05_as_dot_color = get_wtime();
 
   if (!matrix_verify_coloring(m, c, false)) {
     fprintf(stderr, "Coloring verification failed\n");
@@ -114,6 +129,16 @@ int main(int argc, char *argv[]) {
     free(degree);
     return 1;
   }
+  double t06_verify_coloring = get_wtime();
+
+  printf("=== timing report ===\n");
+  printf("matrix_create_random:   %03f s\n", t02_create_random_matrix - t01_start);
+  printf("matrix_degree:          %03f s\n", t03_etc - t02_create_random_matrix);
+  printf("color_cliquelike:       %03f s\n", t04_color_cliquelike - t03_etc);
+  printf("matrix_as_dot_color:    %03f s\n", t05_as_dot_color - t04_color_cliquelike);
+  printf("matrix_verify_coloring: %03f s\n", t06_verify_coloring - t05_as_dot_color);
+  printf("=== end timing report ===\n");
+  printf("number of OMP threads:  %d\n", get_num_omp_threads());
   
   fclose(f);
   matrix_destroy(m);

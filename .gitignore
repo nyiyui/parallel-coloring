@@ -9,3 +9,6 @@ vgcore.*
 test_graph
 test_solver
 test_solver_color
+test_solver_color_perf
+test_solver_color_perf_omp
+test_solver_color_perf_serial
