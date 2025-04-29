@@ -95,9 +95,14 @@ Requirements for the graph object (implemented in `./src/graph.h` and `./src/gra
 - Return whether two vertices are adjacent (`bool matrix_query(struct matrix *m, number_t i, number_t j)`).
 - Return the degree of each vertex (`void matrix_degree(struct matrix *m, size_t *degree)`).
 
-### Algorithm
+### Algorithms
 
 Implementation in `./src/solver.h` and `./src/solver.c`.
+
+This section covers each algorithm used, it's parallelism properties, and correctness.
+It also covers the parallel paradigm used for each algorithm.
+
+#### Graph Coloring Algorithm
 
 The algorithm is a trivial application of Luby's maximal independent set algorithm.
 The algorithm is as follows (explanation in parentheses):
@@ -108,13 +113,35 @@ The algorithm is as follows (explanation in parentheses):
 4. Color all isolated vertices (i.e. vertices with degree 0) with an arbitrary color.
 5. Done
 
-Correctness:
+##### Correctness
 Since the sets `initial_s[i]` are disjoint, the algorithm is guaranteed to give a valid k-coloring of the graph.
+However, note that this algorithm does not guarantee a minimum coloring of the graph.
 
-Parallelism:
+(To show that this algorithm does not necessarily produce a minimum coloring,) consider the following graph:
+```
+    1
+   / \
+  2---3
+ / \ / \
+4---5---6
+```
+A maximal independent set is {1, 4, 6}. We color this red.
+Then, vertices 2, 3, and 5 cannot be colored in three colors.
+We now show a 3-coloring of the graph: 1 and 5 are red, 2 and 6 are blue, and 3 and 4 are green.
+Therefore, the algorithm given above does not necessarily produce a minimum coloring.
+
+##### Data Parallelism
+
 The algorithm cannot be run in a data-parallel manner as each iteration of Luby's algorithm (step 3) is dependent on the previous iteration (previous iterations could color a vertex that could be colored by multiple colors).
+
+##### Domain Decomposition
+
 The algorithm can be parallelized by domain decomposition, by performing a tree decomposition and coloring each tree vertex in parallel.
-Communication/coordination between the threads is required to ensure that the tree decomposition is valid and that the coloring is correct.
+Notice that a subgraph with one vertex connecting to the non-subgraph portions of the graph is trivially colorable with minimal communication between the processes.
+In fact, if the degree of that connecting vertex is less than or equal to the number of colors available, we can color without any communication beforehand, and then change the color of the subgraph to match.
+Clearly, this approach is quite fast as it requires minimal data transfer (i.e. just the subgraph and the number of colors available), lending itself well to a distributed memory model.
+
+#### Luby's Algorithm
 
 Note that we use a modified Luby's algorithm:
 1. Construct `degree` such that `degree[v]` is the degree of vertex `v`.
@@ -126,14 +153,14 @@ Note that we use a modified Luby's algorithm:
   4. Remove `s` and its neighbors from `g_prime`.
 4. Done
 
-Correctness:
+##### Correctness
 At each stage, we see that `s` is added to the independent set.
 Since we remove `s` and its neighbors from `g_prime`, we are guaranteed that our independent set is valid.
 Now, once `g_prime` is empty, all vertices have been either colored or was a neighbor of a colored vertex.
 Therefore, we are guaranteed that our independent set is valid and maximal when we halt.
 
-Parallelism:
-The algorithm can be parallelized (in a data-parallel manner) by running steps 1, 3.1, 3.2, and 3.3 in parallel (with no coordination between the threads other than fork and join).
+##### Data Parallelism
+The algorithm can be parallelized by running steps 1, 3.1, 3.2, and 3.3 in parallel (with no coordination between the threads other than fork and join).
 
 ### Parameters
 
