@@ -157,6 +157,14 @@ The following parameters are used in the project:
 > that context. Implications of results
 > discussed and explained. [4 pts]
 
+### Strong Scaling
+
+### Weak Scaling
+
+### Thread-to-Thread Speedup
+
+### Implications
+
 ### Preliminary Analysis
 
 `./preliminary_parallel_perf_check.sbatch`
@@ -190,6 +198,21 @@ Other references that are not mentioned above are stored here:
 - https://ireneli.eu/2015/10/26/parallel-graph-coloring-algorithms/
 - https://paralg.github.io/gbbs/docs/benchmarks/covering/graph_coloring/
 - https://doi.org/10.1137/0914041
+
+## Rubric Tracker
+
+- Introduction
+- Methods
+- Results
+- Conclusions
+- Figures
+- References
+- At least two parallel paradigms
+- Different parallelization strategies
+- Verification test
+- Scaling/performance studies
+- Load balancing
+- Memory usage
 
 ## Project topics
 
