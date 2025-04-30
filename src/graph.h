@@ -71,3 +71,5 @@ struct matrix *matrix_induce(struct matrix *m, bool *take, number_t *new_vertex_
 void matrix_iterate_edges(struct matrix *m, void (*f)(number_t, number_t, void *), void *data);
 
 void matrix_degree(struct matrix *m, size_t *degree);
+
+struct matrix *matrix_select(struct matrix *m, bool *select);

@@ -57,6 +57,9 @@ void matrix_al_as_dot(struct matrix_al *m, FILE *f) {
   }
   fprintf(f, "graph G {\n");
   for (size_t i = 0; i < m->pairs_size; i++) {
+    if (m->pairs[i].i >= m->pairs[i].j) {
+      continue;
+    }
     fprintf(f, "  %lu -- %lu;\n", m->pairs[i].i, m->pairs[i].j);
   }
   fprintf(f, "}\n");
@@ -379,4 +382,43 @@ void matrix_degree(struct matrix *m, size_t *degree) {
   for (size_t i = 0; i < m->n_vertices; i++) {
     degree[i] = m->row_index[i + 1] - m->row_index[i];
   }
+}
+
+struct matrix *matrix_select(struct matrix *m, bool *select) {
+  assert(m != NULL);
+  assert(select != NULL);
+
+  size_t selected_nnz = 0;
+  // iterate all edges and count selected edges (i.e. have selected vertices on both ends)
+
+  for (size_t i = 0; i < m->n_vertices; i++) {
+    for (size_t j = m->row_index[i]; j < m->row_index[i + 1]; j++) {
+      size_t u = i;
+      size_t v = m->col_index[j];
+      if (select[u] && select[v] && matrix_query(m, u, v)) {
+        selected_nnz++;
+      }
+    }
+  }
+
+  struct matrix *m2 = matrix_create(m->n_vertices, selected_nnz);
+  if (m2 == NULL) {
+    return NULL;
+  }
+
+  {
+    size_t total_nz = 0;
+    for (size_t i = 0; i < m2->n_vertices; i++) {
+      m2->row_index[i] = total_nz;
+      for (size_t j = 0; j < m->n_vertices; j++) {
+        if (select[i] && select[j] && matrix_query(m, i, j)) {
+          m2->col_index[total_nz] = j;
+          total_nz++;
+        }
+      }
+    }
+    assert(total_nz == selected_nnz);
+  }
+
+  return m2;
 }

@@ -95,7 +95,7 @@ Requirements for the graph object (implemented in `./src/graph.h` and `./src/gra
 - Return whether two vertices are adjacent (`bool matrix_query(struct matrix *m, number_t i, number_t j)`).
 - Return the degree of each vertex (`void matrix_degree(struct matrix *m, size_t *degree)`).
 
-### Algorithms
+### Implemented Algorithms
 
 Implementation in `./src/solver.h` and `./src/solver.c`.
 
@@ -141,6 +141,27 @@ Notice that a subgraph with one vertex connecting to the non-subgraph portions o
 In fact, if the degree of that connecting vertex is less than or equal to the number of colors available, we can color without any communication beforehand, and then change the color of the subgraph to match.
 Clearly, this approach is quite fast as it requires minimal data transfer (i.e. just the subgraph and the number of colors available), lending itself well to a distributed memory model.
 
+The algorithm to detect these subgraphs is described below:
+
+#### Subgraph Detection Algorithm
+
+1. For every vertex `u` that has a degree less than `k`:
+  1. For each neighbor `v` of the vertex, find the total number of vertices traversable from `v` (excluding `u`).
+  2. Select a subset of vertices that together have less than half the number of vertices in the graph.
+
+##### Correctness
+
+Notice that if a subgraph is connected to the main graph by two or more vertices, then step 1.1 would find a subgraph with a size approximately equal to the size of the main graph.
+Therefore, all subgraphs selected by this algorithm are guaranteed to be small enough and connected to the main graph by only one vertex.
+
+##### Data Parallelism
+
+Steps 1 and 1.1 can be run in parallel, as there is no data dependency between the vertices.
+
+##### Domain Decomposition
+
+There is no sensible domain decomposition, as step 1.1 potentially needs to traverse the entire graph.
+
 #### Luby's Algorithm
 
 Note that we use a modified Luby's algorithm:
@@ -166,23 +187,12 @@ The algorithm can be parallelized by running steps 1, 3.1, 3.2, and 3.3 in paral
 
 The following parameters are used in the project:
 - `n_vertices`: number of vertices in the graph.
-- `nnz`: number of edges in the graph.
-
-> Sufficient info to plausibly replicate
-> project with little further info needed.
-> Discussion of what exactly was done
-> is clear. Discussion of all parameters
-> varied clear, and their meaning given.
-> Methods clearly appropriate to
-> address project goals. [4 pts]
+- `nnz`: number of edges in the graph (`nnz` is from CSR format nomenclature).
+- `n_threads`: number of threads to use in the parallel implementation. This directly affects the [Luby's Algorithm](#lubys-algorithm). This is enforced using `OMP_NUM_THREADS`, `OMP_THREAD_LIMIT`, etc.
+- `k`: number of colors to use in the k-coloring algorithm. Note that this is always set to be the largest degree of any vertex in the graph, plus one.
+- `n_proc`: number of OpenMPI processes/nodes to use in the parallel implementation. This directly affects the [Graph Coloring Algorithm](#graph-coloring-algorithm). This is enforced by `srun -n <n_proc> ./<executable>`.
 
 ## Results
-
-> Results clearly stated. Reference back
-> to project goals given in the
-> introduction. Results presented within
-> that context. Implications of results
-> discussed and explained. [4 pts]
 
 ### Strong Scaling
 
@@ -207,12 +217,6 @@ thread-to-thread speedup of the parallel implementation of the MIS algorithm.
 | 16      | 0.188300 |       178‰ |
 
 ## Conclusion
-
-> Project goals, methods, and results
-> restated. Results put into a broader
-> context. Implications of work given,
-> and future directions suggested.
-> [4 pts]
 
 ## Other References
 

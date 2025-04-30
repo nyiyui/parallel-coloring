@@ -122,14 +122,14 @@ size_t luby_maximal_independent_set(struct matrix *g, struct coloring *c, number
     }
     // G' = G'\(S ⋃ neighbors of S), i.e., G' is the induced subgraph
     // on V' \ (S ⋃ neighbors of S) where V' is the previous vertex set.
-    bool *is_neighbour = alloc_make_neighbors(g, s);
+    bool *is_neighbor = alloc_make_neighbors(g, s);
     for (size_t i = 0; i < g->n_vertices; i++) {
-      if ((s[i] || is_neighbour[i]) && g_prime[i]) {
+      if ((s[i] || is_neighbor[i]) && g_prime[i]) {
         g_prime[i] = false;
         remove_count++;
       }
     }
-    free(is_neighbour);
+    free(is_neighbor);
 #ifdef DEBUG
     printf("remove_count: %lu\n", remove_count);
     printf("colored_count: %lu\n", colored_count);
@@ -150,6 +150,83 @@ size_t luby_maximal_independent_set(struct matrix *g, struct coloring *c, number
   free(g_prime);
   free(degree);
   return colored_count;
+}
+
+// === detect_subgraph implementation ===
+
+size_t traverse(struct matrix *g, size_t u, bool *visited) {
+  size_t count = 0;
+  size_t *stack = malloc(g->n_vertices * sizeof(size_t));
+  size_t stack_size = 0;
+  stack[stack_size++] = u;
+  visited[u] = true;
+  while (stack_size > 0) {
+    size_t v = stack[--stack_size];
+    count++;
+    for (size_t j = g->row_index[v]; j < g->row_index[v + 1]; j++) {
+      size_t w = g->col_index[j];
+      if (!visited[w]) {
+        visited[w] = true;
+        stack[stack_size++] = w;
+      }
+    }
+  }
+  free(stack);
+  return count;
+}
+
+int qsort_compar(const void *a, const void *b) {
+  size_t size_a = *(size_t *) a;
+  size_t size_b = *(size_t *) b;
+  if (size_a < size_b) {
+    return -1;
+  } else if (size_a > size_b) {
+    return 1;
+  } else {
+    return 0;
+  }
+}
+
+struct subgraph *detect_subgraph(struct matrix *g, size_t k) {
+  assert(k >= 2);
+  size_t *degree = calloc(g->n_vertices, sizeof(size_t));
+  matrix_degree(g, degree);
+  struct subgraph *subgraphs = NULL;
+  size_t subgraphs_length = 0;
+
+  // For every vertex `u` that has a degree less than `k`:
+  for (size_t u = 0; u < g->n_vertices; u++) {
+    if (degree[u] >= k) {
+      continue;
+    }
+    // For each neighbor `v` of the vertex, find the total number of vertices traversable from `v` (excluding `u`).
+    size_t n_neighbors = g->row_index[u + 1] - g->row_index[u];
+    size_t *sizes = malloc(n_neighbors * sizeof(size_t));
+#pragma omp parallel for
+    for (size_t j = g->row_index[u]; j < g->row_index[u + 1]; j++) {
+      size_t v = g->col_index[j];
+      bool *visited = calloc(g->n_vertices, sizeof(bool));
+      visited[u] = true;
+      sizes[j - g->row_index[u]] = traverse(g, v, visited);
+    }
+    // Select a subset of vertices that together have less than half the number of vertices in the graph.
+    size_t smallest_size_index = 0;
+    size_t smallest_size = sizes[0];
+    for (size_t j = 1; j < n_neighbors; j++) {
+      if (sizes[j] < smallest_size) {
+        smallest_size = sizes[j];
+        smallest_size_index = j;
+      }
+    }
+    subgraphs = realloc(subgraphs, (subgraphs_length + 1) * sizeof(struct subgraph));
+    subgraphs[subgraphs_length].vertices = calloc(g->n_vertices, sizeof(bool));
+    subgraphs[subgraphs_length].vertices[u] = true;
+    size_t neighbor = g->col_index[g->row_index[u] + smallest_size_index];
+    traverse(g, neighbor, subgraphs[subgraphs_length].vertices + 1);
+    subgraphs_length++;
+  }
+  free(degree);
+  return subgraphs;
 }
 
 // === color_cliquelike implementation ===
