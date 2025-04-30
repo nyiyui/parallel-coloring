@@ -187,27 +187,28 @@ int qsort_compar(const void *a, const void *b) {
   }
 }
 
-struct subgraph *detect_subgraph(struct matrix *g, size_t k) {
+struct subgraph *detect_subgraph(struct matrix *g, size_t k, size_t *subgraphs_length) {
   assert(k >= 2);
   size_t *degree = calloc(g->n_vertices, sizeof(size_t));
   matrix_degree(g, degree);
   struct subgraph *subgraphs = NULL;
-  size_t subgraphs_length = 0;
+  *subgraphs_length = 0;
 
   // For every vertex `u` that has a degree less than `k`:
   for (size_t u = 0; u < g->n_vertices; u++) {
-    if (degree[u] >= k) {
+    if (degree[u] >= k || degree[u] == 0) {
       continue;
     }
     // For each neighbor `v` of the vertex, find the total number of vertices traversable from `v` (excluding `u`).
     size_t n_neighbors = g->row_index[u + 1] - g->row_index[u];
     size_t *sizes = malloc(n_neighbors * sizeof(size_t));
-#pragma omp parallel for
+/*#pragma omp parallel for*/
     for (size_t j = g->row_index[u]; j < g->row_index[u + 1]; j++) {
       size_t v = g->col_index[j];
       bool *visited = calloc(g->n_vertices, sizeof(bool));
       visited[u] = true;
       sizes[j - g->row_index[u]] = traverse(g, v, visited);
+      free(visited);
     }
     // Select a subset of vertices that together have less than half the number of vertices in the graph.
     size_t smallest_size_index = 0;
@@ -218,12 +219,13 @@ struct subgraph *detect_subgraph(struct matrix *g, size_t k) {
         smallest_size_index = j;
       }
     }
-    subgraphs = realloc(subgraphs, (subgraphs_length + 1) * sizeof(struct subgraph));
-    subgraphs[subgraphs_length].vertices = calloc(g->n_vertices, sizeof(bool));
-    subgraphs[subgraphs_length].vertices[u] = true;
+    free(sizes);
+    subgraphs = realloc(subgraphs, (*subgraphs_length + 1) * sizeof(struct subgraph));
+    subgraphs[*subgraphs_length].vertices = calloc(g->n_vertices, sizeof(bool));
+    subgraphs[*subgraphs_length].vertices[u] = true;
     size_t neighbor = g->col_index[g->row_index[u] + smallest_size_index];
-    traverse(g, neighbor, subgraphs[subgraphs_length].vertices + 1);
-    subgraphs_length++;
+    traverse(g, neighbor, subgraphs[*subgraphs_length].vertices);
+    *subgraphs_length = *subgraphs_length + 1;
   }
   free(degree);
   return subgraphs;

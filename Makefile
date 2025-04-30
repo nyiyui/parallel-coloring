@@ -1,10 +1,11 @@
 CFLAGS = -g -ggdb -Wall -Wextra -Wpedantic -std=c11 -fopenmp
 
-test_all: test_graph test_solver test_solver_color test_solver_color_perf
+test_all: test_graph test_solver test_solver_color test_solver_color_perf test_solver_subgraph
 	time valgrind --leak-check=full ./test_graph /dev/null
 	time valgrind --leak-check=full ./test_solver
 	time valgrind --leak-check=full ./test_solver_color -n 1000 -nnz 1000 -f /dev/null
 	time valgrind --leak-check=full ./test_solver_color_perf -n 1000 -nnz 1000 -f /dev/null
+	time valgrind --leak-check=full ./test_solver_subgraph -n 1000 -nnz 1000 -f /dev/null
 
 .PHONY: test_all
 
@@ -27,6 +28,9 @@ test_solver_color: src/test_solver_color.c graph.o solver.o util.o
 	$(CC) -o $@ $^ $(CFLAGS)
 
 test_solver_color_perf: src/test_solver_color.c graph.o solver.o util.o
+	$(CC) -o $@ $^ $(CFLAGS)
+
+test_solver_subgraph: src/test_solver_subgraph.c graph.o solver.o util.o
 	$(CC) -o $@ $^ $(CFLAGS)
 
 test_graph.dot: test_graph

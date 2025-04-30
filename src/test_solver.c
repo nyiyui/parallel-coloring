@@ -36,15 +36,15 @@ int main(int argc, char *argv[]) {
   }
   c->colors_size = m->n_vertices;
 
+  printf("luby_maximal_independent_set\n");
   luby_maximal_independent_set(m, c, 1, NULL);
-
+  printf("luby_maximal_independent_set done\n");
   matrix_verify_coloring(m, c, true);
-
+  printf("matrix_verify_coloring done\n");
   matrix_as_dot_color(m, f, c);
+  printf("matrix_as_dot_color done\n");
   
   fclose(f);
-  
   matrix_destroy(m);
-  
   return 0;
 }
