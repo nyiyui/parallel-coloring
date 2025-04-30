@@ -154,18 +154,32 @@ size_t luby_maximal_independent_set(struct matrix *g, struct coloring *c, number
 
 // === detect_subgraph implementation ===
 
+void array_or(bool *a, bool *b, size_t n) {
+  for (size_t i = 0; i < n; i++) {
+    a[i] = a[i] || b[i];
+  }
+}
+
+void array_remove(bool *a, bool *b, size_t n) {
+  for (size_t i = 0; i < n; i++) {
+    a[i] = a[i] && !b[i];
+  }
+}
+
 size_t traverse(struct matrix *g, size_t u, bool *visited) {
   size_t count = 0;
   size_t *stack = malloc(g->n_vertices * sizeof(size_t));
   size_t stack_size = 0;
   stack[stack_size++] = u;
   visited[u] = true;
+  count++;
   while (stack_size > 0) {
     size_t v = stack[--stack_size];
-    count++;
     for (size_t j = g->row_index[v]; j < g->row_index[v + 1]; j++) {
       size_t w = g->col_index[j];
       if (!visited[w]) {
+        bool ok = matrix_query(g, v, w);
+        count++;
         visited[w] = true;
         stack[stack_size++] = w;
       }
@@ -187,6 +201,19 @@ int qsort_compar(const void *a, const void *b) {
   }
 }
 
+int qsort_compar2(const void *a, const void *b, void *arg) {
+  size_t *indices = (size_t *) arg;
+  size_t size_a = *(size_t *) a;
+  size_t size_b = *(size_t *) b;
+  if (indices[size_a] < indices[size_b]) {
+    return -1;
+  } else if (indices[size_a] > indices[size_b]) {
+    return 1;
+  } else {
+    return 0;
+  }
+}
+
 struct subgraph *detect_subgraph(struct matrix *g, size_t k, size_t *subgraphs_length) {
   assert(k >= 2);
   size_t *degree = calloc(g->n_vertices, sizeof(size_t));
@@ -194,40 +221,147 @@ struct subgraph *detect_subgraph(struct matrix *g, size_t k, size_t *subgraphs_l
   struct subgraph *subgraphs = NULL;
   *subgraphs_length = 0;
 
+  size_t *effective_reaches = calloc(g->n_vertices, sizeof(size_t));
+  size_t *effective_reach_indices = calloc(g->n_vertices, sizeof(size_t));
   // For every vertex `u` that has a degree less than `k`:
   for (size_t u = 0; u < g->n_vertices; u++) {
     if (degree[u] >= k || degree[u] == 0) {
       continue;
     }
+
+#ifdef DEBUG
+    printf("calculate size form vertex %lu\n", u);
+    printf("  degree: %lu (k=%lu)\n", degree[u], k);
+#endif
+
     // For each neighbor `v` of the vertex, find the total number of vertices traversable from `v` (excluding `u`).
     size_t n_neighbors = g->row_index[u + 1] - g->row_index[u];
-    size_t *sizes = malloc(n_neighbors * sizeof(size_t));
+    size_t *reachable_via_neighbor = malloc(n_neighbors * sizeof(size_t));
 /*#pragma omp parallel for*/
     for (size_t j = g->row_index[u]; j < g->row_index[u + 1]; j++) {
       size_t v = g->col_index[j];
       bool *visited = calloc(g->n_vertices, sizeof(bool));
       visited[u] = true;
-      sizes[j - g->row_index[u]] = traverse(g, v, visited);
+      reachable_via_neighbor[j - g->row_index[u]] = traverse(g, v, visited);
+#ifdef DEBUG
+      printf("  neighbor %lu: reached %lu vertices\n", v, reachable_via_neighbor[j - g->row_index[u]]);
+#endif
       free(visited);
     }
+
     // Select a subset of vertices that together have less than half the number of vertices in the graph.
-    size_t smallest_size_index = 0;
-    size_t smallest_size = sizes[0];
-    for (size_t j = 1; j < n_neighbors; j++) {
-      if (sizes[j] < smallest_size) {
-        smallest_size = sizes[j];
-        smallest_size_index = j;
+    size_t effective_reach, effective_reach_index;
+    if (n_neighbors == 1) {
+      effective_reach = reachable_via_neighbor[0];
+      effective_reach_index = 0;
+    } else {
+      for (size_t i = 0; i < n_neighbors; i++) {
+#ifdef DEBUG
+        printf("  reachable_via_neighbor[%lu]: %lu\n", i, reachable_via_neighbor[i]);
+#endif
       }
+      size_t largest_reach, largest_reach_index, second_largest_reach, second_largest_reach_index;
+      if (reachable_via_neighbor[0] > reachable_via_neighbor[1]) {
+        largest_reach = reachable_via_neighbor[0];
+        largest_reach_index = 0;
+        second_largest_reach = reachable_via_neighbor[1];
+        second_largest_reach_index = 1;
+      } else {
+        largest_reach = reachable_via_neighbor[1];
+        largest_reach_index = 1;
+        second_largest_reach = reachable_via_neighbor[0];
+        second_largest_reach_index = 0;
+      }
+#ifdef DEBUG
+      printf("  n_neighbors: %lu\n", n_neighbors);
+#endif
+      for (size_t j = 2; j < n_neighbors; j++) {
+        if (reachable_via_neighbor[j] > largest_reach) {
+          second_largest_reach = largest_reach;
+          second_largest_reach_index = largest_reach_index;
+          largest_reach = reachable_via_neighbor[j];
+          largest_reach_index = j;
+        } else if (reachable_via_neighbor[j] > second_largest_reach) {
+          second_largest_reach = reachable_via_neighbor[j];
+          second_largest_reach_index = j;
+        }
+      }
+      effective_reach = second_largest_reach;
+      effective_reach_index = second_largest_reach_index;
     }
-    free(sizes);
+    free(reachable_via_neighbor);
+
+#ifdef DEBUG
+    printf("  effective_reach: %lu\n", effective_reach);
+    printf("  effective_reach_index: %lu\n", effective_reach_index);
+#endif
+
+    effective_reaches[u] = effective_reach;
+    effective_reach_indices[u] = effective_reach_index;
+  }
+
+  size_t *sorted_indices = malloc(g->n_vertices * sizeof(size_t));
+  for (size_t i = 0; i < g->n_vertices; i++) {
+    sorted_indices[i] = i;
+  }
+  // The smallest subgraphs shall be done first, so larger subgraphs do not prevent those smaller subgraphs from forming.
+  qsort_r(sorted_indices, g->n_vertices, sizeof(size_t), qsort_compar2, effective_reaches);
+
+#ifdef DEBUG
+  // list out sorted_indices
+  printf("sorted_indices:\n");
+  for (size_t i = 0; i < g->n_vertices; i++) {
+    printf("% 2lu ", sorted_indices[i]);
+    if (i % 10 == 9) {
+      printf("\n");
+    }
+  }
+  printf("\n");
+#endif
+
+  bool *used_in_subgraph = calloc(g->n_vertices, sizeof(bool));
+  // For every vertex `u` that has a degree less than `k`:
+  for (size_t k = 0; k < g->n_vertices; k++) {
+    size_t u = sorted_indices[k];
+    if (degree[u] >= k || used_in_subgraph[u] || degree[u] == 0) {
+      continue;
+    }
+#ifdef DEBUG
+    printf("starting from sorted_indices[%lu]: vertex %lu with expected size %lu\n", k, u, effective_reaches[u]);
+#endif
+    // create subgraph struct
+    struct subgraph new_subgraph = { .vertices = calloc(g->n_vertices, sizeof(bool)) };
+    assert(new_subgraph.vertices != NULL);
+    memcpy(new_subgraph.vertices, used_in_subgraph, g->n_vertices * sizeof(bool));
+#ifdef DEBUG
+    printf("  effective_reach_index: %lu\n", effective_reach_indices[u]);
+    printf("  g->row_index[u]: %lu\n", g->row_index[u]);
+    printf("  g->row_index[u+1]: %lu\n", g->row_index[u + 1]);
+#endif
+    size_t neighbor = g->col_index[effective_reach_indices[u] + g->row_index[u]];
+#ifdef DEBUG
+    printf("  neighbor: %lu\n", neighbor);
+#endif
+    assert(neighbor < g->n_vertices);
+    new_subgraph.vertices[u] = true;
+    size_t traversed = traverse(g, u, new_subgraph.vertices);
+#ifdef DEBUG
+    printf("  traversed: %lu\n", traversed);
+#endif
+    // undo the memcpy above
+    array_remove(new_subgraph.vertices, used_in_subgraph, g->n_vertices);
+    new_subgraph.vertices[u] = true;
+
+    // make sure the subgraphs form a partition of the entire graph
+    array_or(used_in_subgraph, new_subgraph.vertices, g->n_vertices);
+
+    // add to subgraphs list
     subgraphs = realloc(subgraphs, (*subgraphs_length + 1) * sizeof(struct subgraph));
-    subgraphs[*subgraphs_length].vertices = calloc(g->n_vertices, sizeof(bool));
-    subgraphs[*subgraphs_length].vertices[u] = true;
-    size_t neighbor = g->col_index[g->row_index[u] + smallest_size_index];
-    traverse(g, neighbor, subgraphs[*subgraphs_length].vertices);
+    subgraphs[*subgraphs_length] = new_subgraph;
     *subgraphs_length = *subgraphs_length + 1;
   }
   free(degree);
+  free(used_in_subgraph);
   return subgraphs;
 }
 

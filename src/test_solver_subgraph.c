@@ -10,12 +10,14 @@
 static size_t n_vertices = 0;
 static size_t nnz = 0;
 static char *filename = NULL;
+static char *filename2 = NULL;
 
 void print_usage() {
   fprintf(stderr, "Usage: test_solver_subgraph -n <n_vertices> -nnz <nnz> -f <filename>\n");
   fprintf(stderr, "  -n <n_vertices>   Number of vertices in the graph\n");
   fprintf(stderr, "  -nnz <nnz>       Number of non-zero elements in the graph\n");
   fprintf(stderr, "  -f <filename>    Output filename for the graph\n");
+  fprintf(stderr, "  -f2 <filename>    Output filename for the 2nd graph\n");
 }
 
 int parse_args(int argc, char *argv[]) {
@@ -30,6 +32,10 @@ int parse_args(int argc, char *argv[]) {
       argv += 2;
     } else if (strcmp(argv[1], "-f") == 0) {
       filename = argv[2];
+      argc -= 2;
+      argv += 2;
+    } else if (strcmp(argv[1], "-f2") == 0) {
+      filename2 = argv[2];
       argc -= 2;
       argv += 2;
     } else {
@@ -53,6 +59,11 @@ int parse_args(int argc, char *argv[]) {
     fprintf(stderr, "Output filename must be specified with -f\n");
     return 1;
   }
+  if (filename2 == NULL) {
+    print_usage();
+    fprintf(stderr, "Output filename for the 2nd graph must be specified with -f2\n");
+    return 1;
+  }
   return 0;
 }
 
@@ -70,7 +81,18 @@ int main(int argc, char *argv[]) {
   double t02_create_random_matrix = get_wtime();
 
   // matrix_print(m);
+
+  struct coloring c = { 
+    .colors = calloc(m->n_vertices, sizeof(number_t)),
+    .colors_size = m->n_vertices
+  };
+  assert(c.colors != NULL);
   
+  printf("opening file2 %s\n", filename2);
+  FILE *f2 = fopen(filename2, "w");
+  assert(f2 != NULL);
+  matrix_as_dot_color(m, f2, &c);
+  fclose(f2);
   printf("opening file %s\n", filename);
   FILE *f = fopen(filename, "w");
   if (f == NULL) {
@@ -104,13 +126,6 @@ int main(int argc, char *argv[]) {
 
   double t04_detect_subgraph = get_wtime();
 
-  printf("=== timing report ===\n");
-  printf("matrix_create_random:   %03f s\n", t02_create_random_matrix - t01_start);
-  printf("matrix_degree:          %03f s\n", t03_etc - t02_create_random_matrix);
-  printf("detect_subgraph:        %03f s\n", t04_detect_subgraph - t03_etc);
-  printf("=== end timing report ===\n");
-  printf("number of OMP threads:  %d\n", get_num_omp_threads());
-
   for (size_t i = 0; i < subgraphs_length; i++) {
     size_t count = 0;
     for (size_t j = 0; j < m->n_vertices; j++) {
@@ -118,8 +133,19 @@ int main(int argc, char *argv[]) {
         count++;
       }
     }
-    fprintf(f, "subgraph %zu: %zu vertices\n", i, count);
+    printf("subgraph %zu has %zu vertices\n", i, count);
   }
+  matrix_as_dot_subgraph_color(m, f, s, subgraphs_length, &c);
+
+  double t05_dot = get_wtime();
+
+  printf("=== timing report ===\n");
+  printf("matrix_create_random:   %03f s\n", t02_create_random_matrix - t01_start);
+  printf("matrix_degree:          %03f s\n", t03_etc - t02_create_random_matrix);
+  printf("detect_subgraph:        %03f s\n", t04_detect_subgraph - t03_etc);
+  printf("matrix_as_dot_subgraph: %03f s\n", t05_dot - t04_detect_subgraph);
+  printf("=== end timing report ===\n");
+  printf("number of OMP threads:  %d\n", get_num_omp_threads());
 
   for (size_t i = 0; i < subgraphs_length; i++) {
     free(s[i].vertices);

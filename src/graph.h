@@ -73,3 +73,9 @@ void matrix_iterate_edges(struct matrix *m, void (*f)(number_t, number_t, void *
 void matrix_degree(struct matrix *m, size_t *degree);
 
 struct matrix *matrix_select(struct matrix *m, bool *select);
+
+struct subgraph {
+    bool *vertices;
+};
+
+void matrix_as_dot_subgraph_color(struct matrix *m, FILE *f, struct subgraph *subgraphs, size_t subgraphs_length, struct coloring *c);

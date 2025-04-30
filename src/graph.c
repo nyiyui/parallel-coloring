@@ -161,7 +161,7 @@ struct matrix *matrix_create(size_t n_vertices, size_t nnz) {
 struct matrix *matrix_create_random(size_t n_vertices, size_t nnz) {
   // TODO: make a random adjacency matrix first, then convert it to CSR
   //       inefficient but easy to implement
-  printf("allocate matrix - %x bytes\n", (n_vertices * n_vertices) * sizeof(number_t));
+  printf("allocate matrix - %lx bytes\n", (n_vertices * n_vertices) * sizeof(number_t));
   number_t *am = calloc(n_vertices * n_vertices, sizeof(number_t));
   if (am == NULL) {
     return NULL;
@@ -421,4 +421,30 @@ struct matrix *matrix_select(struct matrix *m, bool *select) {
   }
 
   return m2;
+}
+
+void matrix_as_dot_subgraph_color(struct matrix *m, FILE *f, struct subgraph *subgraphs, size_t subgraphs_length, struct coloring *c) {
+  if (m == NULL || f == NULL || subgraphs == NULL || subgraphs_length <= 0 || c == NULL) {
+    return;
+  }
+  fprintf(f, "graph G {\n");
+  for (size_t subgraph_index = 0; subgraph_index < subgraphs_length; subgraph_index++) {
+    fprintf(f, "  subgraph cluster_%zu {\n", subgraph_index);
+    for (size_t i = 0; i < m->n_vertices; i++) {
+      if (!subgraphs[subgraph_index].vertices[i]) {
+        continue;
+      }
+      if (c->colors[i] < color_names_length) {
+        fprintf(f, "    %lu [color=%s];\n", i, color_names[c->colors[i]]);
+      }
+      for (size_t j = m->row_index[i]; j < m->row_index[i + 1]; j++) {
+        if (i >= m->col_index[j]) {
+          continue;
+        }
+        fprintf(f, "    %lu -- %lu;\n", i, m->col_index[j]);
+      }
+    }
+    fprintf(f, "  }\n");
+  }
+  fprintf(f, "}\n");
 }
