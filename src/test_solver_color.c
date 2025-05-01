@@ -12,7 +12,7 @@ static char *filename = NULL;
 
 void print_usage() {
   fprintf(stderr, "Usage: test_solver_color -n <n_vertices> -nnz <nnz> -f <filename>\n");
-  fprintf(stderr, "  -n <n_vertices>   Number of vertices in the graph\n");
+  fprintf(stderr, "  -n <n_vertices>  Number of vertices in the graph\n");
   fprintf(stderr, "  -nnz <nnz>       Number of non-zero elements in the graph\n");
   fprintf(stderr, "  -f <filename>    Output filename for the graph\n");
 }
@@ -115,7 +115,7 @@ int main(int argc, char *argv[]) {
 
   printf("max degree: %zu\n", max_degree);
 
-  color_cliquelike(m, c, max_degree);
+  color_cliquelike(m, c, max_degree, NULL);
   double t04_color_cliquelike = get_wtime();
   matrix_as_dot_color(m, f, c);
   double t05_as_dot_color = get_wtime();

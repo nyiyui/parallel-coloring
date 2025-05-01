@@ -9,7 +9,7 @@
 
 bool *alloc_make_neighbors(struct matrix *g, bool *s) {
   bool *neighbors = calloc(g->n_vertices, sizeof(bool));
-#pragma omp parallel for shared(neighbors)
+#pragma omp parallel for shared(neighbors) shared(s)
   for (size_t i = 0; i < g->n_vertices; i++) {
     // _OPENMP: inner loop is serial, but inner loop has maximum of max(degree) iterations,
     //          which is expected to be small (<10)
@@ -371,11 +371,16 @@ struct find_initial_constraints_arg {
   size_t *constrained_vertices;
   size_t k;
   size_t filled;
+  bool *selection;
 };
 
 void find_initial_constraints(number_t u, number_t v, void *data) {
   struct find_initial_constraints_arg *arg = (struct find_initial_constraints_arg *) data;
   size_t *constrained_vertices = arg->constrained_vertices;
+  bool *selection = arg->selection;
+  if (selection != NULL && !(selection[u] && selection[v])) {
+    return;
+  }
 #define k arg->k
 #define filled arg->filled
   assert(k >= 2);
@@ -420,7 +425,7 @@ void find_initial_constraints(number_t u, number_t v, void *data) {
 #undef filled
 }
 
-void color_cliquelike(struct matrix *g, struct coloring *c, size_t k) {
+void color_cliquelike(struct matrix *g, struct coloring *c, size_t k, bool *selection) {
   assert(c->colors_size == g->n_vertices);
   for (size_t i = 0; i < c->colors_size; i++) {
     c->colors[i] = 0;
@@ -431,6 +436,7 @@ void color_cliquelike(struct matrix *g, struct coloring *c, size_t k) {
   arg.constrained_vertices = malloc(k * sizeof(size_t));
   arg.k = k;
   arg.filled = 0;
+  arg.selection = selection;
   matrix_iterate_edges(g, find_initial_constraints, &arg);
 
   size_t colored_count = 0;
@@ -446,11 +452,15 @@ void color_cliquelike(struct matrix *g, struct coloring *c, size_t k) {
   }
   free(degree);
 
-  // even though arg.constrained_vertices may not be enough, try anyway:
   for (size_t i = 0; i < arg.filled; i ++) {
-    printf("coloring vertex from vertex %lu\n", arg.constrained_vertices[i]);
+    printf("  coloring vertex from vertex %lu with color %lu\n", arg.constrained_vertices[i], i+1);
     bool *initial_s = calloc(g->n_vertices, sizeof(bool));
     initial_s[arg.constrained_vertices[i]] = true;
+    /*for (size_t i = 0; i < g->n_vertices; i++) {*/
+    /*  if (selection != NULL && !selection[i]) {*/
+    /*    c->colors[i] = 99;*/
+    /*  }*/
+    /*}*/
     colored_count += luby_maximal_independent_set(g, c, i+1, initial_s);
     free(initial_s);
   }

@@ -5,4 +5,4 @@ size_t luby_maximal_independent_set(struct matrix *g, struct coloring *c, number
 
 struct subgraph *detect_subgraph(struct matrix *g, size_t k, size_t *subgraphs_length);
 
-void color_cliquelike(struct matrix *g, struct coloring *c, size_t k);
+void color_cliquelike(struct matrix *g, struct coloring *c, size_t k, bool *selection);

@@ -14,10 +14,10 @@ static char *filename2 = NULL;
 
 void print_usage() {
   fprintf(stderr, "Usage: test_solver_subgraph -n <n_vertices> -nnz <nnz> -f <filename>\n");
-  fprintf(stderr, "  -n <n_vertices>   Number of vertices in the graph\n");
+  fprintf(stderr, "  -n <n_vertices>  Number of vertices in the graph\n");
   fprintf(stderr, "  -nnz <nnz>       Number of non-zero elements in the graph\n");
   fprintf(stderr, "  -f <filename>    Output filename for the graph\n");
-  fprintf(stderr, "  -f2 <filename>    Output filename for the 2nd graph\n");
+  fprintf(stderr, "  -f2 <filename>   Output filename for the 2nd graph\n");
 }
 
 int parse_args(int argc, char *argv[]) {

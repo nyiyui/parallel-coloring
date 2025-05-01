@@ -33,6 +33,9 @@ test_solver_color_perf: src/test_solver_color.c graph.o solver.o util.o
 test_solver_subgraph: src/test_solver_subgraph.c graph.o solver.o util.o
 	$(CC) -o $@ $^ $(CFLAGS)
 
+test_solver_distributed: src/test_solver_distributed.c graph.o solver.o util.o
+	mpicc -o $@ $^ $(CFLAGS)
+
 test_graph.dot: test_graph
 	./test_graph $@
 
