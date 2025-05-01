@@ -68,12 +68,17 @@ A MIS of a graph corresponds to a single color in a k-coloring of the graph.
 
 Note that the optimal k-coloring of a graph is NP-hard, so we will not attempt to find the optimal k-coloring. We will just find a k-coloring of the graph.
 
-TODO: serial algorithm, general consturction
-
 ### Known Algorithms
 
 Luby's algorithm ([Luby 1986](https://courses.csail.mit.edu/6.852/08/papers/Luby.pdf), section 3.2 "Algorithm B") is a randomized algorithm for finding a maximal independent set of a graph.
 The algorithm runs in parallel on a concurrent read exclusive write parallel RAM (CREW PRAM) model.
+
+There is also a greedy algorithm for finding an MIS.
+This algorithm works by adding vertices to the set such that no two vertices in the set are adjacent.
+At each step, if there are multiple vertices that can be added to the set, the tie is broken arbitrarily.
+
+Notably, this algorithm is not (easily) parallelizable, as the algorithm is dependent on the previous step.
+However, [Blelloch 2012](https://doi.org/10.1145/2312005.2312058) shows that the dependence is actually O(log²n)-high, and so lends fairly well to parallelization (though this requires lots of communication between threads compared to Luby's algorithm).
 
 ## Methods
 
@@ -97,10 +102,14 @@ Requirements for the graph object (implemented in `./src/graph.h` and `./src/gra
 
 ### Implemented Algorithms
 
-Implementation in `./src/solver.h` and `./src/solver.c`.
+Algorithm implementation in `./src/solver.{h,c}`, executable in `./src/test_solver_distributed.c`.
 
 This section covers each algorithm used, it's parallelism properties, and correctness.
 It also covers the parallel paradigm used for each algorithm.
+
+As an overview, the program first uses the [Subgraph Detection Algorithm](#subgraph-detection-algorithm) to find suitable subgraphs for each OpenMPI rank.
+Then, each rank uses the [Graph Coloring Algorithm](#graph-coloring-algorithm) (which internally uses [Luby's algorithm](#lubys-algorithm)) to color its own subgraph.
+Each subgraph's coloring then gets merged into the original (full-graph) coloring, completing the task.
 
 #### Graph Coloring Algorithm
 
@@ -160,7 +169,7 @@ Steps 1 and 1.1 can be run in parallel, as there is no data dependency between t
 
 ##### Domain Decomposition
 
-There is no sensible domain decomposition, as step 1.1 potentially needs to traverse the entire graph.
+There is no simple domain decomposition, as step 1.1 potentially needs to traverse the entire graph.
 
 #### Luby's Algorithm
 
@@ -190,31 +199,54 @@ The following parameters are used in the project:
 - `nnz`: number of edges in the graph (`nnz` is from CSR format nomenclature).
 - `n_threads`: number of threads to use in the parallel implementation. This directly affects the [Luby's Algorithm](#lubys-algorithm). This is enforced using `OMP_NUM_THREADS`, `OMP_THREAD_LIMIT`, etc.
 - `k`: number of colors to use in the k-coloring algorithm. Note that this is always set to be the largest degree of any vertex in the graph, plus one.
-- `n_proc`: number of OpenMPI processes/nodes to use in the parallel implementation. This directly affects the [Graph Coloring Algorithm](#graph-coloring-algorithm). This is enforced by `srun -n <n_proc> ./<executable>`.
+- `n_tasks`: number of OpenMPI processes/nodes to use in the parallel implementation. This directly affects the [Graph Coloring Algorithm](#graph-coloring-algorithm). This is enforced by `srun -n <n_tasks> ./<executable>`.
 
 ## Results
 
 ### Strong Scaling
 
+For this study, `n_vertices=10000`, `nnz=10000`, and `n_threads` and `n_tasks` were varied.
+
+![Strong Scaling](./strong_scaling.png)
+
+Up to until 4 threads, the algorithm scales ideally.
+However, from 8 threads and above, the algorithm does not scale well, being around 3× slower than ideal for the 8-thread case.
+This may due to memory contention, as the algorithm is mainly memory-bound.
+Additionally, due to the nature of Luby's algorithm, the memory accesses are completely random, causing cache misses and memory contention.
+With only a few cores, this may be manageable (as the cores have work to do), but with more cores, the memory contention can become a bottleneck.
+That is most likely the reason for the drop in performance.
+
 ### Weak Scaling
+
+For this study, `n_vertices=100`, `nnz=100`, and `n_threads` and `n_tasks` were varied (`n_vertices` and `nnz` were scaled up the same).
+The plot is shown below.
+
+![Weak Scaling](./weak_scaling.png)
+
+As can be seen from the graph, the algorithm is not very efficient, and drops to ~0.02 at 8 threads and 4 tasks.
+This is most likely due to `n_vertices/nnz` being too small, resulting in overhead from OpenMP and OpenMPI (a larger `n_vertices/nnz` would result in memory pressure when increasing to e.g. 32 threads).
+This is supported by the fact that the efficiency has a shallower slope between 2 and 4 threads, suggesting that (if there is enough work to keep the cores busy) the communication cost is a fairly large factor of the runtime.
 
 ### Thread-to-Thread Speedup
 
+For the thread-to-thread speedup, we will use `n_vertices=10000`, `nnz=10000`, and `n_tasks=1`, and consider `n_threads=1,4,16,32` (these show the overall trend of the algorithm well).
+
+| Threads | Time (s) | Speedup |
+|---------|----------|---------|
+| 1       | 0.077331 | 1       |
+| 4       | 0.019424 | 3.98    |
+| 16      | 0.035120 | 2.20    |
+| 32      | 0.051279 | 1.51    |
+
+Similar to the conclusion of the strong scaling study, the algorithm does not scale well with more than 4 threads.
+In fact, for 32 threads, the algorithm is slower than for 16 threads.
+This is most likely due to the memory contention and thrashing, as the algorithm is mainly memory-bound, so the extra time would be overhead from thread synchronization and cache misses.
+The fact that 32 threads takes longer suggests thrashing is occurring, as the threads are all trying to access the same memory locations at the same time.
+This is a plausible reason for increases in time (instead of a slower decrease).
+
 ### Implications
 
-### Preliminary Analysis
-
-`./preliminary_parallel_perf_check.sbatch`
-
-thread-to-thread speedup of the parallel implementation of the MIS algorithm.
-
-| Threads | Time (s) | Efficiency |
-|---------|----------|------------|
-| 1       | 0.537425 |      1000‰ |
-| 2       | 0.318460 |       843‰ |
-| 4       | 0.183991 |       730‰ |
-| 8       | 0.201795 |       333‰ |
-| 16      | 0.188300 |       178‰ |
+The strong scaling results show that the parallel implementation of the MIS algorithm is able to achieve a speedup of 2.5x when using 16 threads compared to using 1 thread.
 
 ## Conclusion
 
@@ -229,35 +261,3 @@ Other references that are not mentioned above are stored here:
 - https://ireneli.eu/2015/10/26/parallel-graph-coloring-algorithms/
 - https://paralg.github.io/gbbs/docs/benchmarks/covering/graph_coloring/
 - https://doi.org/10.1137/0914041
-
-## Rubric Tracker
-
-- Introduction
-- Methods
-- Results
-- Conclusions
-- Figures
-- References
-- At least two parallel paradigms
-- Different parallelization strategies
-- Verification test
-- Scaling/performance studies
-- Load balancing
-- Memory usage
-
-## Project topics
-
-You will complete one of the parallel programming and analysis projects below. For _all_ project topics, you must address or satisfy all of the following.
-
-- Combine two _different_ parallel programming models: distributed memory (i.e., MPI), shared memory (i.e., OpenMP), GPUs (i.e., CUDA, Kokkos, or OpenMP Offloading).
-- Explore different parallelization strategies (i.e., domain decomposition, task-parallelism, data-parallelism, etc.).
-- Develop a _verification_ test to ensure the correctness of your solution. Ensure that the solution does not change with the number of parallel tasks.
-- Address load balancing and strategies for maintaining balance as tasks are increased.
-- Address memory usage and how it scales with tasks for your problem.
-- Perform extensive scaling studies (i.e., weak, strong, thread-to-thread speedup) on PACE. Your scaling studies should extend to as large a number of tasks as you are able to with your problem.
-
-Note that for many of these project topics, parallel code can easily be obtained online. _You must develop your own original code to address your problem_. Researching your problem on the web is expected and encouraged, but I recommend you avoid looking directly at someone's code for inspiration.
-
-## Project Reports
-
-You will prepare and submit a report detailing your project, code, and results through a github repo. The reports will be graded according to [this rubric](../refs/rubric_project_final.pdf).

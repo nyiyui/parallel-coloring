@@ -1,0 +1,541 @@
+---------------------------------------
+Begin Slurm Prolog: Apr-30-2025 22:13:35
+Job ID:    2549856
+User ID:   kshibata6
+Account:   coc
+Job name:  cx4803-final-project-study_weak2
+Partition: coc-cpu
+QOS:       coc-ice
+---------------------------------------
++ make clean test_solver_color_perf
+rm -f *.o solver test_graph test_solver test_solver_color test_graph.dot test_graph.svg
+/usr/local/pace-apps/spack/packages/linux-rhel9-x86_64_v3/gcc-11.3.1/gcc-12.3.0-ukkkutsxfl5kpnnaxflpkq2jtliwthfz/bin/gcc -c src/graph.c -g -ggdb -Wall -Wextra -Wpedantic -std=gnu11 -fopenmp
+/usr/local/pace-apps/spack/packages/linux-rhel9-x86_64_v3/gcc-11.3.1/gcc-12.3.0-ukkkutsxfl5kpnnaxflpkq2jtliwthfz/bin/gcc -c src/solver.c graph.o -g -ggdb -Wall -Wextra -Wpedantic -std=gnu11 -fopenmp
+src/solver.c: In function 'traverse':
+src/solver.c:181:14: warning: unused variable 'ok' [-Wunused-variable]
+  181 |         bool ok = matrix_query(g, v, w);
+      |              ^~
+src/solver.c: In function 'detect_subgraph':
+src/solver.c:308:3: warning: implicit declaration of function 'qsort_r'; did you mean 'qsort'? [-Wimplicit-function-declaration]
+  308 |   qsort_r(sorted_indices, g->n_vertices, sizeof(size_t), qsort_compar2, effective_reaches);
+      |   ^~~~~~~
+      |   qsort
+src/solver.c:347:12: warning: unused variable 'traversed' [-Wunused-variable]
+  347 |     size_t traversed = traverse(g, u, new_subgraph.vertices);
+      |            ^~~~~~~~~
+gcc: warning: graph.o: linker input file unused because linking not done
+/usr/local/pace-apps/spack/packages/linux-rhel9-x86_64_v3/gcc-11.3.1/gcc-12.3.0-ukkkutsxfl5kpnnaxflpkq2jtliwthfz/bin/gcc -c src/util.c -g -ggdb -Wall -Wextra -Wpedantic -std=gnu11 -fopenmp
+/usr/local/pace-apps/spack/packages/linux-rhel9-x86_64_v3/gcc-11.3.1/gcc-12.3.0-ukkkutsxfl5kpnnaxflpkq2jtliwthfz/bin/gcc -o test_solver_color_perf src/test_solver_color.c graph.o solver.o util.o -g -ggdb -Wall -Wextra -Wpedantic -std=gnu11 -fopenmp
+src/test_solver_color.c: In function 'main':
+src/test_solver_color.c:80:32: warning: format '%x' expects argument of type 'unsigned int', but argument 2 has type 'long unsigned int' [-Wformat=]
+   80 |   printf("allocate coloring - %x bytes\n", sizeof(struct coloring));
+      |                               ~^           ~~~~~~~~~~~~~~~~~~~~~~~
+      |                                |           |
+      |                                |           long unsigned int
+      |                                unsigned int
+      |                               %lx
+src/test_solver_color.c:87:39: warning: format '%x' expects argument of type 'unsigned int', but argument 2 has type 'long unsigned int' [-Wformat=]
+   87 |   printf("allocate coloring.colors - %x bytes\n", m->n_vertices * sizeof(number_t));
+      |                                      ~^           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |                                       |                         |
+      |                                       unsigned int              long unsigned int
+      |                                      %lx
+src/test_solver_color.c:97:30: warning: format '%x' expects argument of type 'unsigned int', but argument 2 has type 'long unsigned int' [-Wformat=]
+   97 |   printf("allocate degree - %x bytes\n", m->n_vertices * sizeof(size_t));
+      |                             ~^           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |                              |                         |
+      |                              unsigned int              long unsigned int
+      |                             %lx
++ run 1 100 100
++ n_threads=1
++ n=100
++ nnz=100
++ echo n_threads=1
+n_threads=1
++ echo n=100
+n=100
++ echo nnz=100
+nnz=100
++ export OMP_NUM_THREADS=1
++ OMP_NUM_THREADS=1
++ export OMP_PROC_BIND=true
++ OMP_PROC_BIND=true
++ export OMP_PLACES=cores
++ OMP_PLACES=cores
++ export OMP_THREAD_LIMIT=1
++ OMP_THREAD_LIMIT=1
++ export OMP_DYNAMIC=false
++ OMP_DYNAMIC=false
++ ./test_solver_color_perf -n 100 -nnz 100 -f slurm-graph-2549856-omp-1.dot
+matrix_create_random(100, 100)
+allocate matrix - 13880 bytes
+opening file slurm-graph-2549856-omp-1.dot
+allocate coloring - 10 bytes
+allocate coloring.colors - 320 bytes
+allocate degree - 320 bytes
+max degree: 8
+  coloring vertex from vertex 0 with color 1
+  coloring vertex from vertex 93 with color 2
+  coloring vertex from vertex 35 with color 3
+  coloring vertex from vertex 56 with color 4
+  coloring vertex from vertex 67 with color 5
+  coloring vertex from vertex 69 with color 6
+  coloring vertex from vertex 73 with color 7
+  coloring vertex from vertex 87 with color 8
+=== timing report ===
+matrix_create_random:   0.000453 s
+matrix_degree:          0.000721 s
+color_cliquelike:       0.000341 s
+matrix_as_dot_color:    0.000024 s
+matrix_verify_coloring: 0.000002 s
+=== end timing report ===
+number of OMP threads:  1
++ run 2 100 100
++ n_threads=2
++ n=100
++ nnz=100
++ echo n_threads=2
+n_threads=2
++ echo n=100
+n=100
++ echo nnz=100
+nnz=100
++ export OMP_NUM_THREADS=2
++ OMP_NUM_THREADS=2
++ export OMP_PROC_BIND=true
++ OMP_PROC_BIND=true
++ export OMP_PLACES=cores
++ OMP_PLACES=cores
++ export OMP_THREAD_LIMIT=2
++ OMP_THREAD_LIMIT=2
++ export OMP_DYNAMIC=false
++ OMP_DYNAMIC=false
++ ./test_solver_color_perf -n 100 -nnz 100 -f slurm-graph-2549856-omp-2.dot
+matrix_create_random(100, 100)
+allocate matrix - 13880 bytes
+opening file slurm-graph-2549856-omp-2.dot
+allocate coloring - 10 bytes
+allocate coloring.colors - 320 bytes
+allocate degree - 320 bytes
+max degree: 8
+  coloring vertex from vertex 0 with color 1
+  coloring vertex from vertex 93 with color 2
+  coloring vertex from vertex 35 with color 3
+  coloring vertex from vertex 56 with color 4
+  coloring vertex from vertex 67 with color 5
+  coloring vertex from vertex 69 with color 6
+  coloring vertex from vertex 73 with color 7
+  coloring vertex from vertex 87 with color 8
+=== timing report ===
+matrix_create_random:   0.000463 s
+matrix_degree:          0.000686 s
+color_cliquelike:       0.000359 s
+matrix_as_dot_color:    0.000024 s
+matrix_verify_coloring: 0.000001 s
+=== end timing report ===
+number of OMP threads:  2
++ run 4 100 100
++ n_threads=4
++ n=100
++ nnz=100
++ echo n_threads=4
+n_threads=4
++ echo n=100
+n=100
++ echo nnz=100
+nnz=100
++ export OMP_NUM_THREADS=4
++ OMP_NUM_THREADS=4
++ export OMP_PROC_BIND=true
++ OMP_PROC_BIND=true
++ export OMP_PLACES=cores
++ OMP_PLACES=cores
++ export OMP_THREAD_LIMIT=4
++ OMP_THREAD_LIMIT=4
++ export OMP_DYNAMIC=false
++ OMP_DYNAMIC=false
++ ./test_solver_color_perf -n 100 -nnz 100 -f slurm-graph-2549856-omp-4.dot
+matrix_create_random(100, 100)
+allocate matrix - 13880 bytes
+opening file slurm-graph-2549856-omp-4.dot
+allocate coloring - 10 bytes
+allocate coloring.colors - 320 bytes
+allocate degree - 320 bytes
+max degree: 8
+  coloring vertex from vertex 0 with color 1
+  coloring vertex from vertex 93 with color 2
+  coloring vertex from vertex 35 with color 3
+  coloring vertex from vertex 56 with color 4
+  coloring vertex from vertex 67 with color 5
+  coloring vertex from vertex 69 with color 6
+  coloring vertex from vertex 73 with color 7
+  coloring vertex from vertex 87 with color 8
+=== timing report ===
+matrix_create_random:   0.000454 s
+matrix_degree:          0.002061 s
+color_cliquelike:       0.000568 s
+matrix_as_dot_color:    0.000025 s
+matrix_verify_coloring: 0.000001 s
+=== end timing report ===
+number of OMP threads:  4
++ run 8 100 100
++ n_threads=8
++ n=100
++ nnz=100
++ echo n_threads=8
+n_threads=8
++ echo n=100
+n=100
++ echo nnz=100
+nnz=100
++ export OMP_NUM_THREADS=8
++ OMP_NUM_THREADS=8
++ export OMP_PROC_BIND=true
++ OMP_PROC_BIND=true
++ export OMP_PLACES=cores
++ OMP_PLACES=cores
++ export OMP_THREAD_LIMIT=8
++ OMP_THREAD_LIMIT=8
++ export OMP_DYNAMIC=false
++ OMP_DYNAMIC=false
++ ./test_solver_color_perf -n 100 -nnz 100 -f slurm-graph-2549856-omp-8.dot
+matrix_create_random(100, 100)
+allocate matrix - 13880 bytes
+opening file slurm-graph-2549856-omp-8.dot
+allocate coloring - 10 bytes
+allocate coloring.colors - 320 bytes
+allocate degree - 320 bytes
+max degree: 8
+  coloring vertex from vertex 0 with color 1
+  coloring vertex from vertex 93 with color 2
+  coloring vertex from vertex 35 with color 3
+  coloring vertex from vertex 56 with color 4
+  coloring vertex from vertex 67 with color 5
+  coloring vertex from vertex 69 with color 6
+  coloring vertex from vertex 73 with color 7
+  coloring vertex from vertex 87 with color 8
+=== timing report ===
+matrix_create_random:   0.000430 s
+matrix_degree:          0.000688 s
+color_cliquelike:       0.000495 s
+matrix_as_dot_color:    0.000024 s
+matrix_verify_coloring: 0.000001 s
+=== end timing report ===
+number of OMP threads:  8
++ run 16 100 100
++ n_threads=16
++ n=100
++ nnz=100
++ echo n_threads=16
+n_threads=16
++ echo n=100
+n=100
++ echo nnz=100
+nnz=100
++ export OMP_NUM_THREADS=16
++ OMP_NUM_THREADS=16
++ export OMP_PROC_BIND=true
++ OMP_PROC_BIND=true
++ export OMP_PLACES=cores
++ OMP_PLACES=cores
++ export OMP_THREAD_LIMIT=16
++ OMP_THREAD_LIMIT=16
++ export OMP_DYNAMIC=false
++ OMP_DYNAMIC=false
++ ./test_solver_color_perf -n 100 -nnz 100 -f slurm-graph-2549856-omp-16.dot
+matrix_create_random(100, 100)
+allocate matrix - 13880 bytes
+opening file slurm-graph-2549856-omp-16.dot
+allocate coloring - 10 bytes
+allocate coloring.colors - 320 bytes
+allocate degree - 320 bytes
+max degree: 8
+  coloring vertex from vertex 0 with color 1
+  coloring vertex from vertex 93 with color 2
+  coloring vertex from vertex 35 with color 3
+  coloring vertex from vertex 56 with color 4
+  coloring vertex from vertex 67 with color 5
+  coloring vertex from vertex 69 with color 6
+  coloring vertex from vertex 73 with color 7
+  coloring vertex from vertex 87 with color 8
+=== timing report ===
+matrix_create_random:   0.000396 s
+matrix_degree:          0.000710 s
+color_cliquelike:       0.001033 s
+matrix_as_dot_color:    0.000024 s
+matrix_verify_coloring: 0.000001 s
+=== end timing report ===
+number of OMP threads:  16
++ run 32 100 100
++ n_threads=32
++ n=100
++ nnz=100
++ echo n_threads=32
+n_threads=32
++ echo n=100
+n=100
++ echo nnz=100
+nnz=100
++ export OMP_NUM_THREADS=32
++ OMP_NUM_THREADS=32
++ export OMP_PROC_BIND=true
++ OMP_PROC_BIND=true
++ export OMP_PLACES=cores
++ OMP_PLACES=cores
++ export OMP_THREAD_LIMIT=32
++ OMP_THREAD_LIMIT=32
++ export OMP_DYNAMIC=false
++ OMP_DYNAMIC=false
++ ./test_solver_color_perf -n 100 -nnz 100 -f slurm-graph-2549856-omp-32.dot
+matrix_create_random(100, 100)
+allocate matrix - 13880 bytes
+opening file slurm-graph-2549856-omp-32.dot
+allocate coloring - 10 bytes
+allocate coloring.colors - 320 bytes
+allocate degree - 320 bytes
+max degree: 8
+  coloring vertex from vertex 0 with color 1
+  coloring vertex from vertex 93 with color 2
+  coloring vertex from vertex 35 with color 3
+  coloring vertex from vertex 56 with color 4
+  coloring vertex from vertex 67 with color 5
+  coloring vertex from vertex 69 with color 6
+  coloring vertex from vertex 73 with color 7
+  coloring vertex from vertex 87 with color 8
+=== timing report ===
+matrix_create_random:   0.000529 s
+matrix_degree:          0.000768 s
+color_cliquelike:       0.002103 s
+matrix_as_dot_color:    0.000026 s
+matrix_verify_coloring: 0.000000 s
+=== end timing report ===
+number of OMP threads:  32
++ run 2 201 199
++ n_threads=2
++ n=201
++ nnz=199
++ echo n_threads=2
+n_threads=2
++ echo n=201
+n=201
++ echo nnz=199
+nnz=199
++ export OMP_NUM_THREADS=2
++ OMP_NUM_THREADS=2
++ export OMP_PROC_BIND=true
++ OMP_PROC_BIND=true
++ export OMP_PLACES=cores
++ OMP_PLACES=cores
++ export OMP_THREAD_LIMIT=2
++ OMP_THREAD_LIMIT=2
++ export OMP_DYNAMIC=false
++ OMP_DYNAMIC=false
++ ./test_solver_color_perf -n 201 -nnz 199 -f slurm-graph-2549856-omp-2.dot
+matrix_create_random(201, 199)
+allocate matrix - 4ee88 bytes
+opening file slurm-graph-2549856-omp-2.dot
+allocate coloring - 10 bytes
+allocate coloring.colors - 648 bytes
+allocate degree - 648 bytes
+max degree: 6
+  coloring vertex from vertex 0 with color 1
+  coloring vertex from vertex 56 with color 2
+  coloring vertex from vertex 195 with color 3
+  coloring vertex from vertex 44 with color 4
+  coloring vertex from vertex 64 with color 5
+  coloring vertex from vertex 65 with color 6
+=== timing report ===
+matrix_create_random:   0.000722 s
+matrix_degree:          0.001458 s
+color_cliquelike:       0.000562 s
+matrix_as_dot_color:    0.000055 s
+matrix_verify_coloring: 0.000003 s
+=== end timing report ===
+number of OMP threads:  2
++ run 4 400 400
++ n_threads=4
++ n=400
++ nnz=400
++ echo n_threads=4
+n_threads=4
++ echo n=400
+n=400
++ echo nnz=400
+nnz=400
++ export OMP_NUM_THREADS=4
++ OMP_NUM_THREADS=4
++ export OMP_PROC_BIND=true
++ OMP_PROC_BIND=true
++ export OMP_PLACES=cores
++ OMP_PLACES=cores
++ export OMP_THREAD_LIMIT=4
++ OMP_THREAD_LIMIT=4
++ export OMP_DYNAMIC=false
++ OMP_DYNAMIC=false
++ ./test_solver_color_perf -n 400 -nnz 400 -f slurm-graph-2549856-omp-4.dot
+matrix_create_random(400, 400)
+allocate matrix - 138800 bytes
+opening file slurm-graph-2549856-omp-4.dot
+allocate coloring - 10 bytes
+allocate coloring.colors - c80 bytes
+allocate degree - c80 bytes
+max degree: 7
+  coloring vertex from vertex 2 with color 1
+  coloring vertex from vertex 239 with color 2
+  coloring vertex from vertex 306 with color 3
+  coloring vertex from vertex 195 with color 4
+  coloring vertex from vertex 292 with color 5
+  coloring vertex from vertex 217 with color 6
+  coloring vertex from vertex 294 with color 7
+=== timing report ===
+matrix_create_random:   0.001592 s
+matrix_degree:          0.001117 s
+color_cliquelike:       0.000886 s
+matrix_as_dot_color:    0.000103 s
+matrix_verify_coloring: 0.000005 s
+=== end timing report ===
+number of OMP threads:  4
++ run 8 800 800
++ n_threads=8
++ n=800
++ nnz=800
++ echo n_threads=8
+n_threads=8
++ echo n=800
+n=800
++ echo nnz=800
+nnz=800
++ export OMP_NUM_THREADS=8
++ OMP_NUM_THREADS=8
++ export OMP_PROC_BIND=true
++ OMP_PROC_BIND=true
++ export OMP_PLACES=cores
++ OMP_PLACES=cores
++ export OMP_THREAD_LIMIT=8
++ OMP_THREAD_LIMIT=8
++ export OMP_DYNAMIC=false
++ OMP_DYNAMIC=false
++ ./test_solver_color_perf -n 800 -nnz 800 -f slurm-graph-2549856-omp-8.dot
+matrix_create_random(800, 800)
+allocate matrix - 4e2000 bytes
+opening file slurm-graph-2549856-omp-8.dot
+allocate coloring - 10 bytes
+allocate coloring.colors - 1900 bytes
+allocate degree - 1900 bytes
+max degree: 7
+  coloring vertex from vertex 1 with color 1
+  coloring vertex from vertex 76 with color 2
+  coloring vertex from vertex 584 with color 3
+  coloring vertex from vertex 568 with color 4
+  coloring vertex from vertex 98 with color 5
+  coloring vertex from vertex 323 with color 6
+  coloring vertex from vertex 358 with color 7
+=== timing report ===
+matrix_create_random:   0.003122 s
+matrix_degree:          0.001046 s
+color_cliquelike:       0.019722 s
+matrix_as_dot_color:    0.000195 s
+matrix_verify_coloring: 0.000011 s
+=== end timing report ===
+number of OMP threads:  8
++ run 16 1600 1600
++ n_threads=16
++ n=1600
++ nnz=1600
++ echo n_threads=16
+n_threads=16
++ echo n=1600
+n=1600
++ echo nnz=1600
+nnz=1600
++ export OMP_NUM_THREADS=16
++ OMP_NUM_THREADS=16
++ export OMP_PROC_BIND=true
++ OMP_PROC_BIND=true
++ export OMP_PLACES=cores
++ OMP_PLACES=cores
++ export OMP_THREAD_LIMIT=16
++ OMP_THREAD_LIMIT=16
++ export OMP_DYNAMIC=false
++ OMP_DYNAMIC=false
++ ./test_solver_color_perf -n 1600 -nnz 1600 -f slurm-graph-2549856-omp-16.dot
+matrix_create_random(1600, 1600)
+allocate matrix - 1388000 bytes
+opening file slurm-graph-2549856-omp-16.dot
+allocate coloring - 10 bytes
+allocate coloring.colors - 3200 bytes
+allocate degree - 3200 bytes
+max degree: 8
+  coloring vertex from vertex 0 with color 1
+  coloring vertex from vertex 342 with color 2
+  coloring vertex from vertex 762 with color 3
+  coloring vertex from vertex 37 with color 4
+  coloring vertex from vertex 1425 with color 5
+  coloring vertex from vertex 427 with color 6
+  coloring vertex from vertex 1304 with color 7
+  coloring vertex from vertex 530 with color 8
+=== timing report ===
+matrix_create_random:   0.009722 s
+matrix_degree:          0.001149 s
+color_cliquelike:       0.005686 s
+matrix_as_dot_color:    0.000379 s
+matrix_verify_coloring: 0.000022 s
+=== end timing report ===
+number of OMP threads:  16
++ run 32 3201 3201
++ n_threads=32
++ n=3201
++ nnz=3201
++ echo n_threads=32
+n_threads=32
++ echo n=3201
+n=3201
++ echo nnz=3201
+nnz=3201
++ export OMP_NUM_THREADS=32
++ OMP_NUM_THREADS=32
++ export OMP_PROC_BIND=true
++ OMP_PROC_BIND=true
++ export OMP_PLACES=cores
++ OMP_PLACES=cores
++ export OMP_THREAD_LIMIT=32
++ OMP_THREAD_LIMIT=32
++ export OMP_DYNAMIC=false
++ OMP_DYNAMIC=false
++ ./test_solver_color_perf -n 3201 -nnz 3201 -f slurm-graph-2549856-omp-32.dot
+matrix_create_random(3201, 3201)
+allocate matrix - 4e2c808 bytes
+opening file slurm-graph-2549856-omp-32.dot
+allocate coloring - 10 bytes
+allocate coloring.colors - 6408 bytes
+allocate degree - 6408 bytes
+max degree: 9
+  coloring vertex from vertex 0 with color 1
+  coloring vertex from vertex 2510 with color 2
+  coloring vertex from vertex 1203 with color 3
+  coloring vertex from vertex 1564 with color 4
+  coloring vertex from vertex 2990 with color 5
+  coloring vertex from vertex 1672 with color 6
+  coloring vertex from vertex 2204 with color 7
+  coloring vertex from vertex 1603 with color 8
+  coloring vertex from vertex 1833 with color 9
+=== timing report ===
+matrix_create_random:   0.034068 s
+matrix_degree:          0.001325 s
+color_cliquelike:       0.010427 s
+matrix_as_dot_color:    0.000808 s
+matrix_verify_coloring: 0.000044 s
+=== end timing report ===
+number of OMP threads:  32
+---------------------------------------
+Begin Slurm Epilog: Apr-30-2025 22:13:35
+Job ID:        2549856
+User ID:       kshibata6
+Account:       coc
+Job name:      cx4803-final-project-study_weak2
+Resources:     cpu=32,mem=100G,node=1
+Rsrc Used:     cput=00:00:32,vmem=0,walltime=00:00:01,mem=26200K,energy_used=0
+Partition:     coc-cpu
+QOS:           coc-ice
+Nodes:         atl1-1-01-005-4-1
+---------------------------------------

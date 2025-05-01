@@ -25,6 +25,7 @@
             (python3.withPackages (ps: with ps; [
               matplotlib
               numpy
+              pandas
             ]))
             graphviz
             gdb

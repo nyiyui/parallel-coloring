@@ -199,7 +199,7 @@ int main(int argc, char *argv[]) {
     printf("[rank %02d] subgraph %zu has %zu vertices\n", rank, i, vertex_count);
     //struct matrix *selected = matrix_select(m, s.vertices);
     //color_cliquelike(selected, c, k);
-    color_cliquelike(m, c, k, NULL);
+    color_cliquelike(m, c, k, s.vertices);
   }
   for (size_t i = 0; i < m->n_vertices; i++) {
     if (degree[i] == 0) {
@@ -230,6 +230,7 @@ int main(int argc, char *argv[]) {
     }
     printf("coloring done\n");
     t05_color_cliquelike = get_wtime();
+    color_cliquelike(m, c, k, NULL);
   } else {
     printf("[rank %02d] sending coloring to rank 0\n", rank);
     result = MPI_Send(c->colors, m->n_vertices * sizeof(number_t), MPI_BYTE, 0, 0, MPI_COMM_WORLD);
