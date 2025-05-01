@@ -27,7 +27,7 @@ In a "real world" example, a compiler would do this as part or a larger algorith
 3. Find a k-coloring of the graph (k is the number of registers). Note that k is usually very small compared to the number of variables (e.g. k=16 for x86-64, k=31 for ARM64).
 4. Most likely, not all variables can be mapped to registers, so the compiler will have to put some variables in memory ("spill").
 
-Note that register allocation graphs are usually sparse.
+Note that register allocation graphs (interference graphs) are usually sparse.
 Although not a direct measure of sparsity, [Cai 2025](https://doi.org/10.1145/3669940.3707286) notes that the treewidth (see next paragraph) of a register allocation graph at most 7, and at most 6 for most C programs.
 This means that the number of edges is very low between clusters (i.e. set of vertices that are mapped to a single vertex in the tree decomposition with minimum width), and therefore the graph is sparse.
 
@@ -113,6 +113,8 @@ Each subgraph's coloring then gets merged into the original (full-graph) colorin
 
 #### Graph Coloring Algorithm
 
+Runtime: O(n²) (worst case).
+
 The algorithm is a trivial application of Luby's maximal independent set algorithm.
 The algorithm is as follows (explanation in parentheses):
 1. Find the vertex with the largest degree, `v`.
@@ -154,6 +156,8 @@ The algorithm to detect these subgraphs is described below:
 
 #### Subgraph Detection Algorithm
 
+Runtime: O(n²) (worst case).
+
 1. For every vertex `u` that has a degree less than `k`:
   1. For each neighbor `v` of the vertex, find the total number of vertices traversable from `v` (excluding `u`).
   2. Select a subset of vertices that together have less than half the number of vertices in the graph.
@@ -172,6 +176,8 @@ Steps 1 and 1.1 can be run in parallel, as there is no data dependency between t
 There is no simple domain decomposition, as step 1.1 potentially needs to traverse the entire graph.
 
 #### Luby's Algorithm
+
+Runtime: O(log n) (ideal case).
 
 Note that we use a modified Luby's algorithm:
 1. Construct `degree` such that `degree[v]` is the degree of vertex `v`.
@@ -200,6 +206,29 @@ The following parameters are used in the project:
 - `n_threads`: number of threads to use in the parallel implementation. This directly affects the [Luby's Algorithm](#lubys-algorithm). This is enforced using `OMP_NUM_THREADS`, `OMP_THREAD_LIMIT`, etc.
 - `k`: number of colors to use in the k-coloring algorithm. Note that this is always set to be the largest degree of any vertex in the graph, plus one.
 - `n_tasks`: number of OpenMPI processes/nodes to use in the parallel implementation. This directly affects the [Graph Coloring Algorithm](#graph-coloring-algorithm). This is enforced by `srun -n <n_tasks> ./<executable>`.
+
+### Verification
+
+The verification of the algorithm is done by ensuring the resultant graph coloring is correct.
+
+Algorithm:
+1. For each edge `(u,v)` in the graph:
+  1. If `u` and `v` have the same color, return false and halt.
+2. Return true and halt.
+
+### Load Balancing
+
+The load balancing of the algorithm is done by partitioning the graph into subgraphs, and assigning each subgraph to a single OpenMPI rank.
+The subgraphs are then distributed randomly to the OpenMPI ranks (the subgraphs are generated in an arbitrary order).
+The random distribution of the subgraphs generally leads to a good load balancing, as the subgraphs are generated randomly.
+However, some subgraphs are inevitably larger than others, and so the load balancing is not perfect, and one rank may spend significantly more time than another rank on the [Graph Coloring Algorithm](#graph-coloring-algorithm).
+
+### Memory Usage
+
+The memory usage of the algorithm is approximately O(n_vertices+nnz), mainly for the CSR representation of the graph.
+Note that in a subgraph, the memory usage is O(n_vertices+nnz_subgraph), where `nnz_subgraph` is the number of edges completely within the subgraph.
+
+However, the function that randomly generates test cases uses O(n_vertices²) memory, as it generates a random graph with `nnz` edges in an adjacency matrix format.
 
 ## Results
 
@@ -246,9 +275,21 @@ This is a plausible reason for increases in time (instead of a slower decrease).
 
 ### Implications
 
-The strong scaling results show that the parallel implementation of the MIS algorithm is able to achieve a speedup of 2.5x when using 16 threads compared to using 1 thread.
+Register allocation is a very important optimization step in most modern compilers, responsible for a sizeable performance gain.
+It is also an NP-hard problem, and therefore this compilation step grows in time (potentially exponentially) with the length of a block, or depending on how much inlining is done.
+This means that the register allocation step can be a bottleneck in the compilation process, and therefore a parallel k-coloring algorithm for sparse graphs can directly improve the parallel performance of compilers.
+This is especially true for large programs and link-time optimization (LTO), where the register allocation step can take a long time (as another empirical example, is the longest compilation step for large program such as Chromium and Firefox).
 
 ## Conclusion
+
+This project implemented a parallel k-coloring algorithm for sparse graphs using both shared-memory and distributed-memory parallelism.
+Graph coloring has a wide variety of applications, but this program focused on the sparse graphs generated by register allocation graphs (interference graphs).
+The algorithm used was a parallel version of Luby's algorithm, which is a randomized algorithm for finding a maximal independent set of a graph, as well as a greedy algorithm to partition the graph into subgraphs, which are each given to a single OpenMPI rank.
+In a broader context, efficient parallel k-coloring algorithms focused on register allocation can directly improve the parallel performance of compilers (register allocation is a very important optimization step in most modern compilers).
+Future work includes
+a) employing a deterministic version of Luby's algorithm to increase speed (as random numbers are slow to generate and non-deterministic),
+b) employing a better parallelization strategy (e.g. using a tree decomposition to color the graph), and
+c) exploring other sprase graph data structures (e.g. adjacency list) to improve performance.
 
 ## Other References
 
