@@ -238,9 +238,7 @@ Script: `study_strong.sbatch`, `study_strong_tasks.sbatch`
 
 For this study, `n_vertices=10000`, `nnz=10000`, and `n_threads` and `n_tasks` were varied.
 
-![Strong scaling of threads (1 task)](./strong_scaling_efficiency_threads_1tasks.png)
-![Strong scaling of threads (2 task)](./strong_scaling_efficiency_threads_2tasks.png)
-![Strong scaling of threads (4 task)](./strong_scaling_efficiency_threads_4tasks.png)
+| ![Strong scaling of threads (1 task)](./strong_scaling_efficiency_threads_1tasks.png) | ![Strong scaling of threads (2 task)](./strong_scaling_efficiency_threads_2tasks.png) | ![Strong scaling of threads (4 task)](./strong_scaling_efficiency_threads_4tasks.png) |
 
 **Thread Efficiency.**
 Up to until 4 threads, the algorithm scales well.
