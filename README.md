@@ -278,7 +278,6 @@ For this study, `n_vertices=10000`, `nnz=10000`, and `n_threads` and `n_tasks` w
     <td><img src="./strong_scaling_threads_1tasks.png" alt="Strong scaling of threads (1 task)" width="400"/></td>
     <td><img src="./strong_scaling_threads_2tasks.png" alt="Strong scaling of threads (2 tasks)" width="400"/></td>
     <td><img src="./strong_scaling_threads_4tasks.png" alt="Strong scaling of threads (4 tasks)" width="400"/></td>
-    <td><img src="./strong_scaling_threads_8tasks.png" alt="Strong scaling of threads (8 tasks)" width="400"/></td>
   </tr>
 </table>
 
