@@ -1,4 +1,4 @@
-CFLAGS = -g -ggdb -Wall -Wextra -Wpedantic -std=gnu11 -fopenmp -DDEBUG
+CFLAGS = -g -ggdb -Wall -Wextra -Wpedantic -std=gnu11 -fopenmp
 
 test_all: test_graph test_solver test_solver_color test_solver_color_perf test_solver_subgraph
 	time valgrind --leak-check=full ./test_graph /dev/null

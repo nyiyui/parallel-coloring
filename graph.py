@@ -39,59 +39,143 @@ def parse(lines):
     columns = ('n_threads', 'n_tasks', 'n', 'nnz', 'detect_subgraph', 'color_cliquelike', 'total')
     return pd.DataFrame(rows, columns=columns)
 
-def make_strong_scaling(df):
-    plt.figure(figsize=FIGSIZE)
-    plt.title('Strong Scaling: Time v. Threads')
-    plt.xlabel('Number of threads')
-    plt.ylabel('Time (s)')
-    plt.xscale('log')
-    plt.xticks([1, 2, 4, 8, 16, 32], ["1", "2", "4", "8", "16", "32"])
-    plt.plot(df['n_threads'], df['total'], label='Actual', marker='o')
+def make_strong_scaling_threads(df, n_tasks=1):
+    df = df[df['n_tasks'] == n_tasks]
+    df = df.drop_duplicates(subset=['n_threads'], keep='first')
+    time_one = df[df['n_threads'] == 1]['total'].values[0]
+    print('time_one', time_one)
+    df['speedup'] = time_one / df['total']
+    df['efficiency'] = df['speedup'] / df['n_threads']
     print(df)
-    ideal = [df['total'].values[0] / i for i in df['n_threads']]
+    plt.figure(figsize=FIGSIZE)
+    plt.title(f'Strong Scaling: Speedup v. Threads (Tasks={n_tasks})')
+    plt.xlabel('Number of Threads')
+    plt.ylabel('Speedup')
+    plt.xscale('log')
+    plt.xticks([1, 2, 4, 8, 16, 32, 64], ["1", "2", "4", "8", "16", "32", "64"])
+    plt.plot(df['n_threads'], df['speedup'], label='Actual', marker='o')
+    ideal = [n_threads for n_threads in df['n_threads']]
     plt.plot(df['n_threads'], ideal, label='Ideal', linestyle='--')
     plt.legend()
-    plt.savefig('strong_scaling.png', dpi=300, bbox_inches='tight')
-
-def make_weak_scaling(df):
-    df = df[((df['n'] == 100) & (df['n_threads'] == 1)) | (df['n'] != 100)]
-    plt.figure(figsize=FIGSIZE)
-    plt.title('Weak Scaling: Efficiency v. Threads')
-    plt.xlabel('Number of threads')
+    plt.savefig(f'strong_scaling_threads_{n_tasks}tasks.png', dpi=300, bbox_inches='tight')
+    plt.clf()
+    # efficiency
+    plt.title(f'Strong Scaling: Efficiency v. Threads (Tasks={n_tasks})')
+    plt.xlabel('Number of Threads')
     plt.ylabel('Efficiency')
     plt.xscale('log')
-    plt.xticks([1, 2, 4, 8, 16, 32], ["1", "2", "4", "8", "16", "32"])
-    total_one = df[df['n'] == 100]['total'].values[0]
+    plt.xticks([1, 2, 4, 8, 16, 32, 64], ["1", "2", "4", "8", "16", "32", "64"])
+    plt.plot(df['n_threads'], df['efficiency'], label='Actual', marker='o')
+    ideal = [1 for n_threads in df['n_threads']]
+    plt.plot(df['n_threads'], ideal, label='Ideal', linestyle='--')
+    plt.legend()
+    plt.savefig(f'strong_scaling_efficiency_threads_{n_tasks}tasks.png', dpi=300, bbox_inches='tight')
+
+def make_strong_scaling_tasks(df, n_threads=1):
+    df = df[df['n_threads'] == n_threads]
+    df = df.drop_duplicates(subset=['n_tasks'], keep='first')
+    time_one = df[df['n_tasks'] == 1]['total'].values[0]
+    print('time_one', time_one)
+    df['speedup'] = time_one / df['total']
+    df['efficiency'] = df['speedup'] / df['n_tasks']
+    print(df)
+    plt.figure(figsize=FIGSIZE)
+    plt.title(f'Strong Scaling: Speedup v. MPI Tasks (Threads={n_threads})')
+    plt.xlabel('Number of MPI Tasks')
+    plt.ylabel('Speedup')
+    plt.xscale('log')
+    plt.xticks([1, 2, 4, 8, 16, 32, 64], ["1", "2", "4", "8", "16", "32", "64"])
+    plt.plot(df['n_tasks'], df['speedup'], label='Actual', marker='o')
+    ideal = [n_tasks for n_tasks in df['n_tasks']]
+    plt.plot(df['n_tasks'], ideal, label='Ideal', linestyle='--')
+    plt.legend()
+    plt.savefig(f'strong_scaling_tasks_{n_threads}threads.png', dpi=300, bbox_inches='tight')
+    plt.clf()
+    # efficiency
+    plt.title(f'Strong Scaling: Efficiency v. MPI Tasks (Threads={n_threads})')
+    plt.xlabel('Number of MPI Tasks')
+    plt.ylabel('Efficiency')
+    plt.xscale('log')
+    plt.xticks([1, 2, 4, 8, 16, 32, 64], ["1", "2", "4", "8", "16", "32", "64"])
+    plt.plot(df['n_tasks'], df['efficiency'], label='Actual', marker='o')
+    ideal = [1 for n_tasks in df['n_tasks']]
+    plt.plot(df['n_tasks'], ideal, label='Ideal', linestyle='--')
+    plt.legend()
+    plt.savefig(f'strong_scaling_efficiency_tasks_{n_threads}threads.png', dpi=300, bbox_inches='tight')
+
+def make_weak_scaling_tasks(df):
+    # df add column based on ratio
+    df = df[df['n_threads'] == 1]
+    df['ratio'] = df['n'] / (df['n_threads'] * df['n_tasks'])
+    df = df[df['ratio'] == 1000]
+    total_one = df[df['n'] == 1000]['total'].values[0]
     print('total_one', total_one)
-    plt.plot(df['n_threads'], total_one/df['total'], label='Actual', marker='o')
+    df['efficiency'] = total_one / df['total']
+    print('make_weak_scaling_threads')
+    print(df)
+    plt.figure(figsize=FIGSIZE)
+    plt.title('Weak Scaling Efficiency v. MPI Tasks (Threads=1)')
+    plt.xlabel('Number of MPI Tasks')
+    plt.ylabel('Weak Scaling Efficiency')
+    plt.xscale('log')
+    plt.xticks([1, 2, 4, 8, 16, 32], ["1", "2", "4", "8", "16", "32"])
+    plt.plot(df['n_tasks'], df['efficiency'], label='Actual', marker='o')
+    ideal = [1 for i in range(len(df['n_tasks']))]
+    plt.plot(df['n_tasks'], ideal, label='Ideal', linestyle='--')
+    plt.legend()
+    plt.savefig('weak_scaling_tasks.png', dpi=300, bbox_inches='tight')
+
+def make_weak_scaling_threads(df):
+    # df add column based on ratio
+    df = df[df['n_tasks'] == 1]
+    df['ratio'] = df['n'] / (df['n_threads'] * df['n_tasks'])
+    df = df[df['ratio'] == 1000]
+    total_one = df[df['n'] == 1000]['total'].values[0]
+    print('total_one', total_one)
+    df['efficiency'] = total_one / df['total']
+    print('make_weak_scaling_threads')
+    print(df)
+    plt.figure(figsize=FIGSIZE)
+    plt.title('Weak Scaling Efficiency v. Threads (Tasks=1)')
+    plt.xlabel('Number of Threads')
+    plt.ylabel('Weak Scaling Efficiency')
+    plt.xscale('log')
+    plt.xticks([1, 2, 4, 8, 16, 32], ["1", "2", "4", "8", "16", "32"])
+    plt.plot(df['n_threads'], df['efficiency'], label='Actual', marker='o')
     ideal = [1 for i in range(len(df['n_threads']))]
     plt.plot(df['n_threads'], ideal, label='Ideal', linestyle='--')
     plt.legend()
-    plt.savefig('weak_scaling.png', dpi=300, bbox_inches='tight')
+    plt.savefig('weak_scaling_threads.png', dpi=300, bbox_inches='tight')
 
-def make_thread_to_thread_speedup(df):
-    df = df[((df['n'] == 100) & (df['n_threads'] == 1)) | (df['n'] != 100)]
+def make_speedup_threads(df):
+    # df add column based on ratio
+    df = df[(df['n_tasks'] == 1) & (df['n'] == 10000)]
+    total_one = df[df['n_threads'] == 1]['total'].values[0]
+    print('total_one', total_one)
+    df['speedup'] = total_one / df['total']
+    print('make_speedup_threads')
+    print(df)
+
     plt.figure(figsize=FIGSIZE)
-    plt.title('Thread-to-Thread Speedup: Speedup v. Threads')
-    plt.xlabel('Number of threads')
+    plt.title('Strong Scaling: Speedup v. Threads (Tasks=1)')
+    plt.xlabel('Number of Threads')
     plt.ylabel('Speedup')
     plt.xscale('log')
     plt.xticks([1, 2, 4, 8, 16, 32], ["1", "2", "4", "8", "16", "32"])
-    total_one = df[df['n'] == 100]['total'].values[0]
-    print('total_one', total_one)
-    plt.plot(df['n_threads'], total_one/df['total'], label='Actual', marker='o')
-    ideal = df['n_threads'].values
+    plt.plot(df['n_threads'], speedup, label='Actual', marker='o')
+    ideal = [1 for i in range(len(df['n_threads']))]
     plt.plot(df['n_threads'], ideal, label='Ideal', linestyle='--')
     plt.legend()
-    plt.savefig('thread_to_thread_speedup.png', dpi=300, bbox_inches='tight')
+    plt.savefig('speedup_threads.png', dpi=300, bbox_inches='tight')
 
 if __name__ == '__main__':
-    study_strong = parse(open('slurm-2549836.out'))
-    print('=== Strong Scaling ===')
-    print(study_strong)
-    make_strong_scaling(study_strong)
-    study_weak2 = parse(open('slurm-2549856.out'))
-    print('=== Weak Scaling ===')
-    print(study_weak2)
-    make_weak_scaling(study_weak2)
-    make_thread_to_thread_speedup(study_weak2)
+    make_strong_scaling_threads(parse(open('slurm-2551038.out')), n_tasks=1)
+    make_strong_scaling_threads(parse(open('slurm-2551038.out')), n_tasks=2)
+    make_strong_scaling_threads(parse(open('slurm-2551038.out')), n_tasks=4)
+    make_strong_scaling_tasks(parse(open('slurm-2551038.out')), n_threads=1)
+    make_strong_scaling_tasks(parse(open('slurm-2551038.out')), n_threads=2)
+    make_strong_scaling_tasks(parse(open('slurm-2551038.out')), n_threads=4)
+    make_strong_scaling_tasks(parse(open('slurm-2551038.out')), n_threads=8)
+    make_weak_scaling_tasks(parse(open('slurm-2550956.out')))
+    make_weak_scaling_threads(parse(open('slurm-2551010.out')))
+    # make_speedup_threads(parse(open('slurm-2551010.out')))

@@ -1,9 +1,9 @@
 #!/bin/bash
- 
-#SBATCH -J cx4803-final-project-study_strong
-#SBATCH -N 1
+
+#SBATCH -J cx4803-final-project-study_strong_tasks
+#SBATCH -N 4
 #SBATCH --mem=100G
-#SBATCH -t 00:10:00
+#SBATCH -t 00:20:00
 
 # set fake SLURM_JOB_ID if not set
 if [ -z "$SLURM_JOB_ID" ]; then
@@ -30,13 +30,8 @@ function run {
   srun $SRUN_OPT -n $n_tasks ./test_solver_distributed -n $n -nnz $nnz -f slurm-graph-$SLURM_JOB_ID-omp-$n_threads-$n_tasks.dot || echo
 }
 
-export SRUN_OPT="--ntasks-per-node=1 --cpus-per-task=64"
-for n_threads in 1 2 4 8 16 32 64; do
-  run $n_threads 1 10000 10000
-done
-
 for n_threads in 1 2 4 8; do
-  for n_tasks in 1 2 4 8; do
+  for n_tasks in 1 2 4 8 16 32; do
     n=10000
     export SRUN_OPT="--cpus-per-task=$n_threads --ntasks=$n_tasks"
     run $n_threads $n_tasks $n $n

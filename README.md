@@ -234,44 +234,58 @@ However, the function that randomly generates test cases uses O(n_vertices²) me
 
 ### Strong Scaling
 
+Script: `study_strong.sbatch`, `study_strong_tasks.sbatch`
+
 For this study, `n_vertices=10000`, `nnz=10000`, and `n_threads` and `n_tasks` were varied.
 
-![Strong Scaling](./strong_scaling.png)
+![Strong scaling of threads (1 task)](./strong_scaling_efficiency_threads_1tasks.png)
+![Strong scaling of threads (2 task)](./strong_scaling_efficiency_threads_2tasks.png)
+![Strong scaling of threads (4 task)](./strong_scaling_efficiency_threads_4tasks.png)
 
-Up to until 4 threads, the algorithm scales ideally.
+**Thread Efficiency.**
+Up to until 4 threads, the algorithm scales well.
 However, from 8 threads and above, the algorithm does not scale well, being around 3× slower than ideal for the 8-thread case.
 This may due to memory contention, as the algorithm is mainly memory-bound.
 Additionally, due to the nature of Luby's algorithm, the memory accesses are completely random, causing cache misses and memory contention.
 With only a few cores, this may be manageable (as the cores have work to do), but with more cores, the memory contention can become a bottleneck.
 That is most likely the reason for the drop in performance.
 
-### Weak Scaling
+![Strong scaling of tasks (1 thread)](./strong_scaling_efficiency_tasks_1threads.png)
+![Strong scaling of tasks (2 thread)](./strong_scaling_efficiency_tasks_2threads.png)
+![Strong scaling of tasks (4 thread)](./strong_scaling_efficiency_tasks_4threads.png)
+![Strong scaling of tasks (8 thread)](./strong_scaling_efficiency_tasks_8threads.png)
 
-For this study, `n_vertices=100`, `nnz=100`, and `n_threads` and `n_tasks` were varied (`n_vertices` and `nnz` were scaled up the same).
-The plot is shown below.
-
-![Weak Scaling](./weak_scaling.png)
-
-As can be seen from the graph, the algorithm is not very efficient, and drops to ~0.02 at 8 threads and 4 tasks.
-This is most likely due to `n_vertices/nnz` being too small, resulting in overhead from OpenMP and OpenMPI (a larger `n_vertices/nnz` would result in memory pressure when increasing to e.g. 32 threads).
-This is supported by the fact that the efficiency has a shallower slope between 2 and 4 threads, suggesting that (if there is enough work to keep the cores busy) the communication cost is a fairly large factor of the runtime.
+**Tasks Efficiency.**
+Compared to the thread efficiency, the task efficiency is better, thanks to the minimal communication between the tasks (during coloring).
+The main loss in efficiency is then thought to be the communication overhead of having to broadcast the entire matrix to each node/task.
 
 ### Thread-to-Thread Speedup
 
-For the thread-to-thread speedup, we will use `n_vertices=10000`, `nnz=10000`, and `n_tasks=1`, and consider `n_threads=1,4,16,32` (these show the overall trend of the algorithm well).
+Script: `study_strong.sbatch`
 
-| Threads | Time (s) | Speedup |
-|---------|----------|---------|
-| 1       | 0.077331 | 1       |
-| 4       | 0.019424 | 3.98    |
-| 16      | 0.035120 | 2.20    |
-| 32      | 0.051279 | 1.51    |
+For this study, `n_vertices=10000`, `nnz=10000`, and `n_threads` and `n_tasks` were varied.
 
-Similar to the conclusion of the strong scaling study, the algorithm does not scale well with more than 4 threads.
-In fact, for 32 threads, the algorithm is slower than for 16 threads.
-This is most likely due to the memory contention and thrashing, as the algorithm is mainly memory-bound, so the extra time would be overhead from thread synchronization and cache misses.
-The fact that 32 threads takes longer suggests thrashing is occurring, as the threads are all trying to access the same memory locations at the same time.
-This is a plausible reason for increases in time (instead of a slower decrease).
+![Thread-to-thread speedup (1 task)](./strong_scaling_threads_1tasks.png) 
+![Thread-to-thread speedup (2 task)](./strong_scaling_threads_2tasks.png)
+![Thread-to-thread speedup (4 task)](./strong_scaling_threads_4tasks.png)
+![Thread-to-thread speedup (8 task)](./strong_scaling_threads_8tasks.png)
+
+Up to until 8 threads, there is some speedup.
+At 16 threads and above, there is no speedup, and the algorithm becomes slower than the serial version.
+
+As said in the strong scaling section, this is most likely due to memory contention (and random memory accesses) as the algorithm is mainly memory-bound.
+
+### Weak Scaling
+
+For this study, `n_vertices=1000`, `nnz=1000`, and `n_threads` and `n_tasks` were varied (`n_vertices` and `nnz` were scaled up the same).
+The plot is shown below.
+
+![Weak scaling of threads](./weak_scaling_threads.png)
+![Weak scaling of tasks](./weak_scaling_tasks.png)
+
+As can be seen from the graph, the algorithm is not very efficient, and drops to ~0.02 at 8 threads and 4 tasks.
+This is most likely due to `n_vertices/nnz` being too small, resulting in overhead from OpenMP and OpenMPI (a larger `n_vertices/nnz` would result in too-large memory usage when e.g. 16 threads/tasks are used, so 1000 was selected).
+This is supported by the fact that the efficiency has a shallower slope between 2 and 4 threads, suggesting that (if there is enough work to keep the cores busy) the communication cost is a fairly large factor of the runtime.
 
 ### Implications
 
@@ -302,3 +316,8 @@ Other references that are not mentioned above are stored here:
 - https://ireneli.eu/2015/10/26/parallel-graph-coloring-algorithms/
 - https://paralg.github.io/gbbs/docs/benchmarks/covering/graph_coloring/
 - https://doi.org/10.1137/0914041
+
+## Appendix: Slurm Logs
+
+./slurm-2549943.out
+preliminary_parallel_perf_check.sbatch

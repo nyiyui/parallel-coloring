@@ -1,9 +1,11 @@
 #!/bin/bash
  
 #SBATCH -J cx4803-final-project-study_weak
-#SBATCH -N 1 --ntasks-per-node=4 --cpus-per-task=8
+#SBATCH -N 4 --ntasks-per-node=4 --cpus-per-task=8
 #SBATCH --mem=100G
-#SBATCH -t 00:02:00
+#SBATCH -t 00:10:00
+
+# according to ./preliminary_parallel_perf_check.sbatch, 8 threads seems to be the reasonable limit
 
 # set fake SLURM_JOB_ID if not set
 if [ -z "$SLURM_JOB_ID" ]; then
@@ -30,9 +32,16 @@ function run {
   srun -n $n_tasks ./test_solver_distributed -n $n -nnz $nnz -f slurm-graph-$SLURM_JOB_ID-omp-$n_threads-$n_tasks.dot || echo
 }
 
-run 1 1 100 100
-run 1 2 201 199
-run 1 4 410 410
-run 1 8 800 800
-run 2 1 201 199
-run 4 1 400 400
+for n_threads in 1 2 4 8; do
+  for n_tasks in 1 2 4 8 16; do
+    n=$((n_tasks * 1000))
+    run $n_threads $n_tasks $n $n
+  done
+done
+
+for n_threads in 1 2 4 8 16 32; do
+  for n_tasks in 1 2 4 8 16; do
+    n=$((n_threads * 1000))
+    run $n_threads $n_tasks $n $n
+  done
+done
