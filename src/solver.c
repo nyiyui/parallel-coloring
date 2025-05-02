@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include <stdlib.h>
 #include <assert.h>
 #include <string.h>
@@ -7,15 +8,24 @@
 // === luby_maximal_independent_set implementation ===
 // Cite for algorithm implementation: Eric Vigoda, https://faculty.cc.gatech.edu/~vigoda/RandAlgs/MIS.pdf
 
-bool *alloc_make_neighbors(struct matrix *g, bool *s) {
+bool *alloc_make_neighbors(const struct matrix *g, bool *s) {
   bool *neighbors = calloc(g->n_vertices, sizeof(bool));
-#pragma omp parallel for shared(neighbors) shared(s)
+#pragma omp parallel for shared(neighbors, s, g)
   for (size_t i = 0; i < g->n_vertices; i++) {
     // _OPENMP: inner loop is serial, but inner loop has maximum of max(degree) iterations,
     //          which is expected to be small (<10)
     for (size_t j = g->row_index[i]; j < g->row_index[i + 1]; j++) {
+      assert(j < g->nnz);
       size_t u = i;
       size_t v = g->col_index[j];
+      if (v >= g->n_vertices || u >= g->n_vertices) {
+        printf("===u: %lu, v: %lu\n", u, v);
+        printf("===g->col_index[%lu]: %lu\n", j, g->col_index[j]);
+        printf("===g->n_vertices: %lu\n", g->n_vertices);
+        printf("===g->nnz: %lu\n", g->nnz);
+      }
+      assert(u < g->n_vertices);
+      assert(v < g->n_vertices);
       if (s[u] || s[v]) {
         neighbors[u] = true;
         neighbors[v] = true;
@@ -25,7 +35,7 @@ bool *alloc_make_neighbors(struct matrix *g, bool *s) {
   return neighbors;
 }
 
-size_t luby_maximal_independent_set(struct matrix *g, struct coloring *c, number_t color, bool *initial_s) {
+size_t luby_maximal_independent_set(const struct matrix *g, struct coloring *c, const number_t color, bool *initial_s) {
   assert(c->colors_size == g->n_vertices);
   size_t *degree = calloc(g->n_vertices, sizeof(size_t));
   matrix_degree(g, degree);
@@ -166,7 +176,7 @@ void array_remove(bool *a, bool *b, size_t n) {
   }
 }
 
-size_t traverse(struct matrix *g, size_t u, bool *visited) {
+size_t traverse(const struct matrix *g, const size_t u, bool *visited) {
   size_t count = 0;
   size_t *stack = malloc(g->n_vertices * sizeof(size_t));
   size_t stack_size = 0;
@@ -178,7 +188,6 @@ size_t traverse(struct matrix *g, size_t u, bool *visited) {
     for (size_t j = g->row_index[v]; j < g->row_index[v + 1]; j++) {
       size_t w = g->col_index[j];
       if (!visited[w]) {
-        bool ok = matrix_query(g, v, w);
         count++;
         visited[w] = true;
         stack[stack_size++] = w;
@@ -214,7 +223,7 @@ int qsort_compar2(const void *a, const void *b, void *arg) {
   }
 }
 
-struct subgraph *detect_subgraph(struct matrix *g, size_t k, size_t *subgraphs_length) {
+struct subgraph *detect_subgraph(const struct matrix *g, const size_t k, size_t *subgraphs_length) {
   assert(k >= 2);
   size_t *degree = calloc(g->n_vertices, sizeof(size_t));
   matrix_degree(g, degree);
@@ -311,7 +320,7 @@ struct subgraph *detect_subgraph(struct matrix *g, size_t k, size_t *subgraphs_l
   // list out sorted_indices
   printf("sorted_indices:\n");
   for (size_t i = 0; i < g->n_vertices; i++) {
-    printf("% 2lu ", sorted_indices[i]);
+    printf("%02lu ", sorted_indices[i]);
     if (i % 10 == 9) {
       printf("\n");
     }
@@ -344,9 +353,11 @@ struct subgraph *detect_subgraph(struct matrix *g, size_t k, size_t *subgraphs_l
 #endif
     assert(neighbor < g->n_vertices);
     new_subgraph.vertices[u] = true;
-    size_t traversed = traverse(g, u, new_subgraph.vertices);
 #ifdef DEBUG
+    size_t traversed = traverse(g, u, new_subgraph.vertices);
     printf("  traversed: %lu\n", traversed);
+#else
+    traverse(g, u, new_subgraph.vertices);
 #endif
     // undo the memcpy above
     array_remove(new_subgraph.vertices, used_in_subgraph, g->n_vertices);
@@ -425,7 +436,7 @@ void find_initial_constraints(number_t u, number_t v, void *data) {
 #undef filled
 }
 
-void color_cliquelike(struct matrix *g, struct coloring *c, size_t k, bool *selection) {
+void color_cliquelike(const struct matrix *g, struct coloring *c, const size_t k, bool *selection) {
   assert(c->colors_size == g->n_vertices);
   for (size_t i = 0; i < c->colors_size; i++) {
     c->colors[i] = 0;

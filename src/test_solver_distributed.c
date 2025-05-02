@@ -9,13 +9,13 @@
 #include "util.h"
 
 static size_t n_vertices = 0;
-static size_t nnz = 0;
+static size_t n_edges = 0;
 static char *filename = NULL;
 
 void print_usage() {
-  fprintf(stderr, "Usage: test_solver_distributed -n <n_vertices> -nnz <nnz> -f <filename>\n");
+  fprintf(stderr, "Usage: test_solver_distributed -n <n_vertices> -nnz <n_edges> -f <filename>\n");
   fprintf(stderr, "  -n <n_vertices>  Number of vertices in the graph\n");
-  fprintf(stderr, "  -nnz <nnz>       Number of non-zero elements in the graph\n");
+  fprintf(stderr, "  -nnz <n_edges>       Number of non-zero elements in the graph\n");
   fprintf(stderr, "  -f <filename>    Output filename for the graph\n");
 }
 
@@ -26,7 +26,7 @@ int parse_args(int argc, char *argv[], bool silent) {
       argc -= 2;
       argv += 2;
     } else if (strcmp(argv[1], "-nnz") == 0) {
-      nnz = strtoul(argv[2], NULL, 10);
+      n_edges = strtoul(argv[2], NULL, 10);
       argc -= 2;
       argv += 2;
     } else if (strcmp(argv[1], "-f") == 0) {
@@ -48,7 +48,7 @@ int parse_args(int argc, char *argv[], bool silent) {
     }
     return 1;
   }
-  if (nnz == 0) {
+  if (n_edges == 0) {
     if (!silent) {
       print_usage();
       fprintf(stderr, "Number of non-zero elements must be specified with -nnz\n");
@@ -85,38 +85,39 @@ int main(int argc, char *argv[]) {
   struct matrix *m;
   if (rank == 0) {
     t01_start = get_wtime();
-    printf("matrix_create_random(%zu, %zu)\n", n_vertices, nnz);
-    m = matrix_create_random(n_vertices, nnz);
+    printf("matrix_create_random(%zu, %zu)\n", n_vertices, n_edges);
+    m = matrix_create_random(n_vertices, n_edges);
     assert(m != NULL);
+    assert(m->nnz == 2*n_edges);
+    assert(m->n_vertices == n_vertices);
     t02_create_random_matrix = get_wtime();
   } else {
     m = malloc(sizeof(struct matrix));
     m->n_vertices = n_vertices;
-    m->nnz = 2*nnz;
-    m->col_index = malloc(nnz * sizeof(number_t));
+    m->nnz = 2*n_edges;
+    m->col_index = malloc(m->nnz * sizeof(number_t));
     m->row_index = malloc((n_vertices + 1) * sizeof(number_t));
   }
   if (rank == 0) {
     printf("broadcasting matrix\n");
   }
-  MPI_Barrier(MPI_COMM_WORLD);
-  int result = MPI_Bcast(m->col_index, m->nnz * sizeof(number_t), MPI_BYTE, 0, MPI_COMM_WORLD);
+  int result = MPI_Bcast(m->col_index, m->nnz, NUMBER_T_MPI, 0, MPI_COMM_WORLD);
   assert(result == MPI_SUCCESS);
   MPI_Barrier(MPI_COMM_WORLD);
-  result = MPI_Bcast(m->row_index, (m->n_vertices + 1) * sizeof(number_t), MPI_BYTE, 0, MPI_COMM_WORLD);
+  result = MPI_Bcast(m->row_index, (m->n_vertices + 1), NUMBER_T_MPI, 0, MPI_COMM_WORLD);
   assert(result == MPI_SUCCESS);
   if (rank == 0) {
     printf("done broadcasting matrix\n");
   }
 
-  // {
-  //   char *filename[100] = {0};
-  //   sprintf(filename, "/tmp/matrix_%d.dot", rank);
-  //   FILE *f = fopen(filename, "w");
-  //   assert(f != NULL);
-  //   matrix_as_dot(m, f);
-  //   fclose(f);
-  // }
+  {
+    char *filename[100] = {0};
+    sprintf(filename, "/tmp/matrix_%d.dot", rank);
+    FILE *f = fopen(filename, "w");
+    assert(f != NULL);
+    matrix_as_dot(m, f);
+    fclose(f);
+  }
   
   if (rank == 0) {
     printf("allocate coloring - %lx bytes\n", sizeof(struct coloring));
@@ -207,7 +208,7 @@ int main(int argc, char *argv[]) {
     }
   }
   if (rank == 0) {
-    for (size_t i = 0; i < size-1; i++) {
+    for (size_t i = 0; i < (size_t) size-1; i++) {
       MPI_Status status;
       struct coloring *c_subgraph = malloc(sizeof(struct coloring));
       c_subgraph->colors = malloc(m->n_vertices * sizeof(number_t));
@@ -265,6 +266,8 @@ int main(int argc, char *argv[]) {
   printf("[rank %02d] done, waiting for all ranks\n", rank);
   MPI_Barrier(MPI_COMM_WORLD);
   printf("[rank %02d] exiting\n", rank);
+
+  MPI_Finalize();
   return 0;
 }
 

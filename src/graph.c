@@ -65,7 +65,7 @@ void matrix_al_as_dot(struct matrix_al *m, FILE *f) {
   fprintf(f, "}\n");
 }
 
-void matrix_as_dot_color(struct matrix *m, FILE *f, struct coloring *c) {
+void matrix_as_dot_color(const struct matrix *m, FILE *f, const struct coloring *c) {
   if (m == NULL || f == NULL || c == NULL) {
     return;
   }
@@ -128,9 +128,9 @@ bool matrix_al_verify_coloring(struct matrix_al *m, struct coloring *c) {
   return true;
 }
 
-struct matrix *matrix_create(size_t n_vertices, size_t nnz) {
+struct matrix *matrix_create(const size_t n_vertices, const size_t nnz) {
 #ifdef DEBUG
-  printf("allocate matrix - %x bytes\n", sizeof(struct matrix));
+  printf("allocate matrix - %lx bytes\n", sizeof(struct matrix));
 #endif
   struct matrix *m = malloc(sizeof(struct matrix));
   if (m == NULL) {
@@ -139,7 +139,7 @@ struct matrix *matrix_create(size_t n_vertices, size_t nnz) {
   m->n_vertices = n_vertices;
   m->nnz = nnz;
 #ifdef DEBUG
-  printf("allocate matrix.col_index - %x bytes\n", nnz * sizeof(number_t));
+  printf("allocate matrix.col_index - %lx bytes\n", nnz * sizeof(number_t));
 #endif
   m->col_index = malloc(nnz * sizeof(number_t));
   if (m->col_index == NULL) {
@@ -147,7 +147,7 @@ struct matrix *matrix_create(size_t n_vertices, size_t nnz) {
     return NULL;
   }
 #ifdef DEBUG
-  printf("allocate matrix.row_index - %x bytes\n", (n_vertices + 1) * sizeof(number_t));
+  printf("allocate matrix.row_index - %lx bytes\n", (n_vertices + 1) * sizeof(number_t));
 #endif
   m->row_index = malloc((n_vertices + 1) * sizeof(number_t));
   if (m->row_index == NULL) {
@@ -158,15 +158,17 @@ struct matrix *matrix_create(size_t n_vertices, size_t nnz) {
   return m;
 }
 
-struct matrix *matrix_create_random(size_t n_vertices, size_t nnz) {
+struct matrix *matrix_create_random(const size_t n_vertices, const size_t n_edges) {
   // TODO: make a random adjacency matrix first, then convert it to CSR
   //       inefficient but easy to implement
+#ifdef DEBUG
   printf("allocate matrix - %lx bytes\n", (n_vertices * n_vertices) * sizeof(number_t));
+#endif
   number_t *am = calloc(n_vertices * n_vertices, sizeof(number_t));
   if (am == NULL) {
     return NULL;
   }
-  for (size_t count = 0; count < nnz;) {
+  for (size_t count = 0; count < n_edges;) {
     number_t i = random() % n_vertices;
     number_t j = random() % n_vertices;
     if (am[i * n_vertices + j] ||
@@ -179,7 +181,7 @@ struct matrix *matrix_create_random(size_t n_vertices, size_t nnz) {
     count++;
   }
 
-  struct matrix *m = matrix_create(n_vertices, 2*nnz);
+  struct matrix *m = matrix_create(n_vertices, 2*n_edges);
   if (m == NULL) {
     free(am);
     return NULL;
@@ -210,6 +212,14 @@ struct matrix *matrix_create_random(size_t n_vertices, size_t nnz) {
     }
   }
   free(am);
+  // verify matrix
+  for (size_t i = 0; i < m->nnz; i++) {
+    assert(m->col_index[i] < m->n_vertices);
+  }
+  for (size_t i = 0; i < m->n_vertices; i++) {
+    assert(m->row_index[i] < m->nnz);
+  }
+  assert(m->row_index[m->n_vertices] == m->nnz);
   return m;
 }
 
@@ -226,7 +236,7 @@ void matrix_destroy(struct matrix *m) {
   free(m);
 }
 
-void matrix_print(struct matrix *m) {
+void matrix_print(const struct matrix *m) {
   if (m == NULL) {
     return;
   }
@@ -247,7 +257,7 @@ void matrix_print(struct matrix *m) {
   }
 }
 
-void matrix_as_dot(struct matrix *m, FILE *f) {
+void matrix_as_dot(const struct matrix *m, FILE *f) {
   if (m == NULL || f == NULL) {
     return;
   }
@@ -260,7 +270,7 @@ void matrix_as_dot(struct matrix *m, FILE *f) {
   fprintf(f, "}\n");
 }
 
-bool matrix_query(struct matrix *m, number_t i, number_t j) {
+bool matrix_query(const struct matrix *m, number_t i, number_t j) {
   if (m == NULL) {
     return false;
   }
@@ -277,7 +287,7 @@ bool matrix_query(struct matrix *m, number_t i, number_t j) {
   return false;
 }
 
-bool matrix_verify_coloring(struct matrix *m, struct coloring *c, bool ignore_zero) {
+bool matrix_verify_coloring(const struct matrix *m, const struct coloring *c, const bool ignore_zero) {
   for (size_t i = 0; i < m->n_vertices; i++) {
     for (size_t j = m->row_index[i]; j < m->row_index[i + 1]; j++) {
       if (c->colors[i] == c->colors[m->col_index[j]] && (!ignore_zero || c->colors[i] != 0)) {
@@ -293,7 +303,7 @@ bool matrix_verify_coloring(struct matrix *m, struct coloring *c, bool ignore_ze
   return true;
 }
 
-struct matrix *matrix_induce(struct matrix *m, bool *take, number_t *new_vertex_out) {
+struct matrix *matrix_induce(const struct matrix *m, const bool *take, number_t *new_vertex_out) {
   if (m == NULL || take == NULL) {
     return NULL;
   }
@@ -366,7 +376,7 @@ struct matrix *matrix_induce(struct matrix *m, bool *take, number_t *new_vertex_
   return induced;
 }
 
-void matrix_iterate_edges(struct matrix *m, void (*f)(number_t, number_t, void *), void *data) {
+void matrix_iterate_edges(const struct matrix *m, const void (*f)(number_t, number_t, void *), void *data) {
   for (size_t i = 0; i < m->n_vertices; i++) {
     // _OPENMP: inner loop is serial, but inner loop has maximum of max(degree) iterations,
     //          which is expected to be small (<10)
@@ -376,7 +386,7 @@ void matrix_iterate_edges(struct matrix *m, void (*f)(number_t, number_t, void *
   }
 }
 
-void matrix_degree(struct matrix *m, size_t *degree) {
+void matrix_degree(const struct matrix *m, size_t *degree) {
   assert(m != NULL);
   assert(degree != NULL);
   for (size_t i = 0; i < m->n_vertices; i++) {
@@ -384,7 +394,7 @@ void matrix_degree(struct matrix *m, size_t *degree) {
   }
 }
 
-struct matrix *matrix_select(struct matrix *m, bool *select) {
+struct matrix *matrix_select(const struct matrix *m, const bool *select) {
   assert(m != NULL);
   assert(select != NULL);
 
@@ -423,7 +433,7 @@ struct matrix *matrix_select(struct matrix *m, bool *select) {
   return m2;
 }
 
-void matrix_as_dot_subgraph_color(struct matrix *m, FILE *f, struct subgraph *subgraphs, size_t subgraphs_length, struct coloring *c) {
+void matrix_as_dot_subgraph_color(const struct matrix *m, FILE *f, const struct subgraph *subgraphs, const size_t subgraphs_length, const struct coloring *c) {
   if (m == NULL || f == NULL || subgraphs == NULL || subgraphs_length <= 0 || c == NULL) {
     return;
   }

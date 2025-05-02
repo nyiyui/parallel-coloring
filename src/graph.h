@@ -5,7 +5,10 @@
 #include <stddef.h>
 #include <stdio.h>
 
+#include "mpi.h"
+
 #define number_t uint64_t
+#define NUMBER_T_MPI MPI_UINT64_T
 #define number_bits (sizeof(number_t) * 8)
 
 // Note that this pair only has (i, j) where i < j
@@ -48,34 +51,32 @@ struct matrix {
   number_t *row_index;  // n_vertices + 1 elements
 };
 
-struct matrix *matrix_create(size_t n_vertices, size_t nnz);
+struct matrix *matrix_create(const size_t n_vertices, const size_t nnz);
 
-struct matrix *matrix_create_random(size_t n_vertices, size_t nnz);
-
-void matrix_ensure_symmetric(struct matrix *m);
+struct matrix *matrix_create_random(const size_t n_vertices, const size_t nnz);
 
 void matrix_destroy(struct matrix *m);
 
-void matrix_print(struct matrix *m);
+void matrix_print(const struct matrix *m);
 
-void matrix_as_dot(struct matrix *m, FILE *f);
+void matrix_as_dot(const struct matrix *m, FILE *f);
 
-void matrix_as_dot_color(struct matrix *m, FILE *f, struct coloring *c);
+void matrix_as_dot_color(const struct matrix *m, FILE *f, const struct coloring *c);
 
-bool matrix_query(struct matrix *m, number_t i, number_t j);
+bool matrix_query(const struct matrix *m, const number_t i, const number_t j);
 
-bool matrix_verify_coloring(struct matrix *m, struct coloring *c, bool ignore_zero);
+bool matrix_verify_coloring(const struct matrix *m, const struct coloring *c, const bool ignore_zero);
 
-struct matrix *matrix_induce(struct matrix *m, bool *take, number_t *new_vertex_out);
+struct matrix *matrix_induce(const struct matrix *m, const bool *take, number_t *new_vertex_out);
 
-void matrix_iterate_edges(struct matrix *m, void (*f)(number_t, number_t, void *), void *data);
+void matrix_iterate_edges(const struct matrix *m, const void (*f)(number_t, number_t, void *), void *data);
 
-void matrix_degree(struct matrix *m, size_t *degree);
+void matrix_degree(const struct matrix *m, size_t *degree);
 
-struct matrix *matrix_select(struct matrix *m, bool *select);
+struct matrix *matrix_select(const struct matrix *m, const bool *select);
 
 struct subgraph {
     bool *vertices;
 };
 
-void matrix_as_dot_subgraph_color(struct matrix *m, FILE *f, struct subgraph *subgraphs, size_t subgraphs_length, struct coloring *c);
+void matrix_as_dot_subgraph_color(const struct matrix *m, FILE *f, const struct subgraph *subgraphs, const size_t subgraphs_length, const struct coloring *c);
