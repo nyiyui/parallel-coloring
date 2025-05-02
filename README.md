@@ -238,17 +238,11 @@ Script: `study_strong.sbatch`, `study_strong_tasks.sbatch`
 
 For this study, `n_vertices=10000`, `nnz=10000`, and `n_threads` and `n_tasks` were varied.
 
-![Strong scaling of threads (1 task)](./strong_scaling_efficiency_threads_1tasks.png)
-![Strong scaling of threads (2 task)](./strong_scaling_efficiency_threads_2tasks.png)
-![Strong scaling of threads (4 task)](./strong_scaling_efficiency_threads_4tasks.png)
-
-<!-- show images side-by-side -->
 <table>
   <tr>
     <td><img src="./strong_scaling_efficiency_threads_1tasks.png" alt="Strong scaling of threads (1 task)" width="400"/></td>
-    <td><img src="./strong_scaling_efficiency_threads_2tasks.png" alt="Strong scaling of threads (2 task)" width="400"/></td>
-    <td><img src="./strong_scaling_efficiency_threads_4tasks.png" alt="Strong scaling of threads (4 task)" width="400"/></td>
-    <td><img src="./strong_scaling_efficiency_threads_8tasks.png" alt="Strong scaling of threads (8 task)" width="400"/></td>
+    <td><img src="./strong_scaling_efficiency_threads_2tasks.png" alt="Strong scaling of threads (2 tasks)" width="400"/></td>
+    <td><img src="./strong_scaling_efficiency_threads_4tasks.png" alt="Strong scaling of threads (4 tasks)" width="400"/></td>
   </tr>
 </table>
 
@@ -260,10 +254,14 @@ Additionally, due to the nature of Luby's algorithm, the memory accesses are com
 With only a few cores, this may be manageable (as the cores have work to do), but with more cores, the memory contention can become a bottleneck.
 That is most likely the reason for the drop in performance.
 
-![Strong scaling of tasks (1 thread)](./strong_scaling_efficiency_tasks_1threads.png)
-![Strong scaling of tasks (2 thread)](./strong_scaling_efficiency_tasks_2threads.png)
-![Strong scaling of tasks (4 thread)](./strong_scaling_efficiency_tasks_4threads.png)
-![Strong scaling of tasks (8 thread)](./strong_scaling_efficiency_tasks_8threads.png)
+<table>
+  <tr>
+    <td><img src="./strong_scaling_efficiency_tasks_1threads.png" alt="Strong scaling of tasks (1 thread)" width="400"/></td>
+    <td><img src="./strong_scaling_efficiency_tasks_2threads.png" alt="Strong scaling of tasks (2 threads)" width="400"/></td>
+    <td><img src="./strong_scaling_efficiency_tasks_4threads.png" alt="Strong scaling of tasks (4 threads)" width="400"/></td>
+    <td><img src="./strong_scaling_efficiency_tasks_8threads.png" alt="Strong scaling of tasks (8 threads)" width="400"/></td>
+  </tr>
+</table>
 
 **Tasks Efficiency.**
 Compared to the thread efficiency, the task efficiency is better, thanks to the minimal communication between the tasks (during coloring).
@@ -275,10 +273,14 @@ Script: `study_strong.sbatch`
 
 For this study, `n_vertices=10000`, `nnz=10000`, and `n_threads` and `n_tasks` were varied.
 
-![Thread-to-thread speedup (1 task)](./strong_scaling_threads_1tasks.png) 
-![Thread-to-thread speedup (2 task)](./strong_scaling_threads_2tasks.png)
-![Thread-to-thread speedup (4 task)](./strong_scaling_threads_4tasks.png)
-![Thread-to-thread speedup (8 task)](./strong_scaling_threads_8tasks.png)
+<table>
+  <tr>
+    <td><img src="./strong_scaling_threads_1tasks.png" alt="Strong scaling of threads (1 task)" width="400"/></td>
+    <td><img src="./strong_scaling_threads_2tasks.png" alt="Strong scaling of threads (2 tasks)" width="400"/></td>
+    <td><img src="./strong_scaling_threads_4tasks.png" alt="Strong scaling of threads (4 tasks)" width="400"/></td>
+    <td><img src="./strong_scaling_threads_8tasks.png" alt="Strong scaling of threads (8 tasks)" width="400"/></td>
+  </tr>
+</table>
 
 Up to until 8 threads, there is some speedup.
 At 16 threads and above, there is no speedup, and the algorithm becomes slower than the serial version.
@@ -290,8 +292,12 @@ As said in the strong scaling section, this is most likely due to memory content
 For this study, `n_vertices=1000`, `nnz=1000`, and `n_threads` and `n_tasks` were varied (`n_vertices` and `nnz` were scaled up the same).
 The plot is shown below.
 
-![Weak scaling of threads](./weak_scaling_threads.png)
-![Weak scaling of tasks](./weak_scaling_tasks.png)
+<table>
+  <tr>
+    <td><img src="./weak_scaling_threads.png" alt="Weak scaling of threads" width="400"/></td>
+    <td><img src="./weak_scaling_tasks.png" alt="Weak scaling of tasks" width="400"/></td>
+  </tr>
+</table>
 
 As can be seen from the graph, the algorithm is not very efficient, and drops to ~0.02 at 8 threads and 4 tasks.
 This is most likely due to `n_vertices/nnz` being too small, resulting in overhead from OpenMP and OpenMPI (a larger `n_vertices/nnz` would result in too-large memory usage when e.g. 16 threads/tasks are used, so 1000 was selected).
