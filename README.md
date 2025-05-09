@@ -2,6 +2,8 @@
 
 Note: this is a recompiled [CX 4803 GPU](https://tangqi.github.io/spring-2025/) final project.
 
+I gratefully thank [Aiden Lambert](https://github.com/theVerySharpFlat/)'s help debugging a memory bug :D (fun times).
+
 ## Introduction
 
 This program attempts to do a k-coloring of a sparse graph.
@@ -331,8 +333,3 @@ Other references that are not mentioned above are stored here:
 - https://ireneli.eu/2015/10/26/parallel-graph-coloring-algorithms/
 - https://paralg.github.io/gbbs/docs/benchmarks/covering/graph_coloring/
 - https://doi.org/10.1137/0914041
-
-## Appendix: Slurm Logs
-
-./slurm-2549943.out
-preliminary_parallel_perf_check.sbatch
