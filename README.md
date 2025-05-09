@@ -1,13 +1,12 @@
-[![Review Assignment Due Date](https://classroom.github.com/assets/deadline-readme-button-22041afd0340ce965d47ae6ef1cefeee28c7c493a6346c4f15d667ab976d596c.svg)](https://classroom.github.com/a/UHhs5Uma)
-# Final Projects
+# Parallel Graph coloring
 
-## Due: EOD, 30 April
+Note: this is a recompiled [CX 4803 GPU](https://tangqi.github.io/spring-2025/) final project.
 
 ## Introduction
 
 This program attempts to do a k-coloring of a sparse graph.
 
-This project report first explains the motivation of a k-coloring on a sparse graph, then describes some background on the graph and the algorithm used to do the k-coloring.
+This first explains the motivation of a k-coloring on a sparse graph, then describes some background on the graph and the algorithm used to do the k-coloring.
 In the Methods section, the algorithm is described and its correctness is argued. Various implementation details are discussed to allow a reader to replicate the project. Additionally, the methodology used to obtain the results is described.
 In the Results section, the results of the project are presented and discussed.
 Finally, the Conclusion section summarizes the project and discusses future work.
